@@ -9,8 +9,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     where: { id },
     data: {
       name: body.name,
-      email: body.email,
-      phone: body.phone,
+      clientType: body.clientType,
+      contactPerson: body.contactPerson,
+      emails: body.emails,
+      phones: body.phones,
+      addresses: body.addresses,
+      sourceCategory: body.sourceCategory,
+      sourceName: body.sourceName,
+      taxId: body.taxId,
+      paymentTerms: body.paymentTerms,
+      creditLimit: body.creditLimit ? parseFloat(body.creditLimit) : 0
     }
   });
   return NextResponse.json(updated);

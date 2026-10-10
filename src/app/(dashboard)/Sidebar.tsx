@@ -12,11 +12,9 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   return (
     <aside className="w-[260px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0 z-20 shadow-sm relative overflow-y-auto">
       {/* BRANDING */}
-      <div className="p-6 pb-4 border-b border-gray-100 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-md bg-[#ff7f11] text-white flex items-center justify-center shadow-sm ring-2 ring-[#ff7f11]/20">
-          <Armchair size={18} strokeWidth={2.5} />
-        </div>
-        <span className="font-extrabold text-gray-900 tracking-tight text-xl">ERP</span>
+      <div className="p-6 pb-4 border-b border-gray-100 flex flex-col items-start gap-1">
+        <img src="/logo.png" alt="d'furn" className="h-8 object-contain" />
+        <span className="text-[10px] font-bold text-gray-400 tracking-[0.2em] pl-1 uppercase mt-1">ERP System</span>
       </div>
 
       {/* COMPANY INFO */}

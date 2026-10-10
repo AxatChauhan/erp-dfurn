@@ -14,9 +14,16 @@ export async function POST(req: Request) {
   const newClient = await prisma.client.create({
     data: {
       name: body.name,
-      email: body.email,
-      phone: body.phone,
-      clientType: body.clientType || 'COMPANY',
+      clientType: body.clientType || 'BUSINESS',
+      contactPerson: body.contactPerson,
+      emails: body.emails,
+      phones: body.phones,
+      addresses: body.addresses,
+      sourceCategory: body.sourceCategory,
+      sourceName: body.sourceName,
+      taxId: body.taxId,
+      paymentTerms: body.paymentTerms,
+      creditLimit: body.creditLimit ? parseFloat(body.creditLimit) : 0
     }
   });
   return NextResponse.json(newClient);

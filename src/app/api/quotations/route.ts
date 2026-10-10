@@ -41,8 +41,9 @@ export async function POST(req: Request) {
     data: {
       quotationNumber: body.quotationNumber || `QT-${Math.floor(Math.random() * 10000)}`,
       clientId: body.clientId,
+      enquiryId: body.enquiryId || null,
       status: finalStatus,
-      totalAmount: body.totalAmount,
+      totalAmount: body.totalAmount || body.items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice), 0),
       items: {
         create: body.items.map((item: any) => ({
           description: item.description,

@@ -37,6 +37,7 @@ type Quotation = {
   totalAmount: number;
   items: QuotationItem[];
   createdAt?: string;
+  updatedAt?: string;
 };
 
 export default function QuotationsPage() {
@@ -470,11 +471,11 @@ export default function QuotationsPage() {
               </table>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+          </div>
+        )}
+      </div>
+    );
+  }
 
 function QuotationForm({
   quotation,
@@ -828,7 +829,9 @@ function QuotationViewCard({
   onSendApproval: () => void;
   onDirectApprove: () => void;
 }) {
+  const [showLog, setShowLog] = useState(false);
   return (
+    <>
     <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex justify-center items-center z-50 p-4">
       <div className="bg-white w-full max-w-2xl shadow-xl flex flex-col rounded-2xl overflow-hidden animate-slide-up">
         <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
@@ -948,59 +951,116 @@ function QuotationViewCard({
             </div>
           </div>
         </div>
-        <div className="px-6 py-4 bg-slate-50 border-t border-gray-200 flex justify-between items-center">
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                onDownload();
-              }}
-              className="px-5 py-2.5 rounded-full text-sm font-bold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 shadow-sm flex items-center gap-2 transition-colors active:scale-95"
-            >
-              <Download size={16} /> Download PDF
-            </button>
-            {userRole !== "SUPER_ADMIN" && quotation.status === "DRAFT" && (
+
+            {/* Activity / Audit Log */}
+                    <div className="px-6 py-4 bg-gray-50 border-t rounded-b-xl flex justify-between items-center">
+            <div className="flex gap-2">
               <button
                 onClick={() => {
                   onClose();
-                  onSendApproval();
+                  onEdit();
                 }}
-                className="px-5 py-2.5 rounded-full text-sm font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 shadow-sm flex items-center gap-2 transition-colors active:scale-95"
+                className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 bg-blue-50 px-4 py-2 rounded-md transition-colors"
               >
-                Submit for Approval
+                <Edit2 size={16} /> Edit Quotation
               </button>
-            )}
-            {userRole === "SUPER_ADMIN" &&
-              quotation.status === "PENDING_APPROVAL" && (
+              <button
+                onClick={() => setShowLog(true)}
+                className="text-sm font-bold text-slate-600 hover:text-slate-800 flex items-center gap-1.5 bg-slate-200 px-4 py-2 rounded-md transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> View Log
+              </button>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  onDownload();
+                }}
+                className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-sm rounded-md hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-2"
+              >
+                <Download size={16} /> Download PDF
+              </button>
+              
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
+              >
+                Close
+              </button>
+              
+              {userRole !== "SUPER_ADMIN" && quotation.status === "DRAFT" && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onSendApproval();
+                  }}
+                  className="px-4 py-2 bg-orange-50 text-orange-700 font-bold text-sm rounded-md hover:bg-orange-100 transition-colors shadow-sm"
+                >
+                  Submit for Approval
+                </button>
+              )}
+              {userRole === "SUPER_ADMIN" && quotation.status === "PENDING_APPROVAL" && (
                 <button
                   onClick={() => {
                     onClose();
                     onDirectApprove();
                   }}
-                  className="px-5 py-2.5 rounded-full text-sm font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm flex items-center gap-2 transition-colors active:scale-95"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 font-bold text-sm transition-colors shadow-sm"
                 >
                   Approve Quotation
-                </button>
-              )}
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-sm font-bold text-gray-600 hover:text-gray-900 bg-white border border-gray-200 shadow-sm hover:shadow transition-colors active:scale-95"
-            >
-              Close
-            </button>
-            <button
-              onClick={() => {
-                onClose();
-                onEdit();
-              }}
-              className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-full hover:bg-slate-800 flex items-center gap-2 shadow-sm hover:shadow transition-all active:scale-95"
-            >
-              <Edit2 size={16} /> Edit Quotation
-            </button>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
+
+        {showLog && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[60] p-4">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col animate-slide-up overflow-hidden">
+            <div className="px-5 py-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Activity Log
+              </h3>
+              <button onClick={() => setShowLog(false)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">&times;</button>
+            </div>
+            <div className="p-5 space-y-5 bg-white">
+              <div className="flex gap-3 items-start">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 shrink-0 shadow-[0_0_0_3px_rgba(16,185,129,0.2)]"></div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Quotation Generated</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{quotation.createdAt ? new Date(quotation.createdAt).toLocaleString(undefined, {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'}) : "N/A"}</p>
+                </div>
+              </div>
+              {quotation.updatedAt && quotation.createdAt && new Date(quotation.updatedAt).getTime() - new Date(quotation.createdAt).getTime() > 60000 && (
+                <div className="flex gap-3 items-start relative before:absolute before:left-[4px] before:top-[-25px] before:w-[2px] before:h-[25px] before:bg-slate-200">
+                  <div className="w-2.5 h-2.5 rounded-full bg-orange-400 mt-1 shrink-0 shadow-[0_0_0_3px_rgba(251,146,60,0.2)]"></div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">Quotation Updated</p>
+                    <p className="text-xs text-slate-500">Record modified or status changed to {quotation.status.replace("_", " ")}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{new Date(quotation.updatedAt).toLocaleString(undefined, {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</p>
+                  </div>
+                </div>
+              )}
+              {quotation.status === 'APPROVED' && (
+                <div className="flex gap-3 items-start relative before:absolute before:left-[4px] before:top-[-25px] before:w-[2px] before:h-[25px] before:bg-slate-200">
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500 mt-1 shrink-0 shadow-[0_0_0_3px_rgba(168,85,247,0.2)]"></div>
+                  <div>
+                    <p className="text-sm font-bold text-purple-700">Quotation Approved</p>
+                    <p className="text-xs text-slate-500">The client has accepted this quotation.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3 bg-gray-50 border-t flex justify-end">
+              <button onClick={() => setShowLog(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md text-xs font-bold hover:bg-gray-300">Close</button>
+            </div>
+          </div>
+          </div>
+        )}
+      </>
+    );
+  }
+

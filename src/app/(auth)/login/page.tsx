@@ -34,12 +34,7 @@ export default function LoginPage() {
       {/* LEFT SIDE - BRANDING */}
       <div className="hidden md:flex w-1/2 bg-[#17253b] flex-col items-center justify-center p-12">
         <div className="bg-white rounded-xl shadow-lg p-10 flex items-center justify-center mb-8 h-64 w-[400px]">
-          {/* Logo Placeholder */}
-          <div className="flex items-center gap-2">
-            <div className="flex text-orange-500 font-bold text-3xl">
-              ✓ <span className="text-slate-800 ml-1">CONSCIOUS</span>
-            </div>
-          </div>
+          <img src="/logo.png" alt="d'furn logo" className="max-h-full max-w-full object-contain drop-shadow-sm" />
         </div>
         <p className="text-[#a0aab8] text-center max-w-sm text-[15px] leading-relaxed">
           The multi-tenant ERP platform powering conscious, connected manufacturing operations.
@@ -50,8 +45,8 @@ export default function LoginPage() {
       <div className="w-full md:w-1/2 bg-[#f4f3ed] flex flex-col items-center justify-center p-12">
         <div className="w-full max-w-sm">
           <div className="flex flex-col items-center mb-10">
-            <div className="flex items-center text-orange-500 font-bold text-4xl mb-6">
-              d'furn<sup className="text-xl mt-2 ml-0.5">®</sup>
+            <div className="flex items-center mb-6">
+              <img src="/logo.png" alt="d'furn logo" className="h-10 object-contain drop-shadow-sm" />
             </div>
             <h1 className="text-xl font-bold text-gray-900 tracking-tight">Sign in to your workspace</h1>
             <p className="text-sm text-gray-400 mt-1">Enter your credentials to continue</p>

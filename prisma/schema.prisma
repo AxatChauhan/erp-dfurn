@@ -19,44 +19,70 @@ model User {
 }
 
 model Client {
-  id            String      @id @default(uuid())
-  clientType    String      @default("COMPANY") // INDIVIDUAL, COMPANY
-  name          String
-  email         String?     @unique
-  phone         String?
-  taxId         String?
-  paymentTerms  String?
-  creditLimit   Float?      @default(0.00)
-  isActive      Boolean     @default(true)
+  id              String      @id @default(uuid())
+  clientType      String      @default("BUSINESS") // INDIVIDUAL, BUSINESS
+  name            String      // Individual Name or Company Name
+  contactPerson   String?     // Contact person if BUSINESS
   
-  enquiries     Enquiry[]
-  quotations    Quotation[]
+  emails          Json?       // Array of email strings
+  phones          Json?       // Array of phone strings
+  addresses       Json?       // Array of address objects: { label, street, city, state, zip }
   
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  sourceCategory  String?     // e.g., 'DIRECT', 'SOCIAL_MEDIA', 'WEBSITE', 'REFERRAL'
+  sourceName      String?     // e.g., name of referrer
+  
+  taxId           String?     // GSTIN
+  paymentTerms    String?
+  creditLimit     Float?      @default(0.00)
+  isActive        Boolean     @default(true)
+  
+  enquiries       Enquiry[]
+  quotations      Quotation[]
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model Enquiry {
-  id            String        @id @default(uuid())
-  enquiryNumber String        @unique 
-  clientId      String
-  client        Client        @relation(fields: [clientId], references: [id])
-  rating        String        @default("NEW_LEAD") 
-  notes         String?
-  items         EnquiryItem[]
-  quotations    Quotation[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               String        @id @default(uuid())
+  enquiryNumber    String        @unique 
+  clientId         String
+  client           Client        @relation(fields: [clientId], references: [id])
+  
+  status           String        @default("NEW") // NEW, IN_PROGRESS, QUALIFIED, DROPPED, CONVERTED
+  
+  // Discovery & Context
+  expectedTimeline String?       // e.g., 'Urgent', '1-3 Months', 'Flexible'
+  estimatedBudget  Float?        
+  propertyType     String?       // e.g., 'Residential', 'Commercial Office'
+  
+  // Follow-ups & Notes
+  nextFollowUp     DateTime?
+  notes            String?       // Keep as a simple string for general notes or a single block of text
+  
+  // New Additions
+  sourceCategory   String?
+  sourceName       String?
+  attachments      Json?         // Array of { name, url }
+  
+  items            EnquiryItem[]
+  quotations       Quotation[]
+  
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model EnquiryItem {
-  id          String   @id @default(uuid())
-  enquiryId   String
-  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
-  description String
-  quantity    Int      @default(1)
-  unitPrice   Float    @default(0.00)
-  total       Float    @default(0.00)
+  id                 String   @id @default(uuid())
+  enquiryId          String
+  enquiry            Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  description        String
+  quantity           Int      @default(1)
+  unitPrice          Float    @default(0.00)
+  total              Float    @default(0.00)
+  
+  expectedDimensions String?  // e.g., "1200x600x750mm"
+  materialPreference String?  // e.g., "Teak Wood", "MDF"
 }
 
 model Quotation {
