@@ -35,6 +35,7 @@ type Enquiry = {
   attachments?: EnquiryAttachment[];
   items: EnquiryItem[];
   createdAt: string;
+  updatedAt?: string;
 };
 
 const STATUSES = [
