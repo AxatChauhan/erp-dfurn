@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  username  String   @unique
+  password  String   // In a real app, hash this!
+  role      String   @default("SALES") // SUPER_ADMIN, SALES, MANAGER, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id            String      @id @default(uuid())
+  clientType    String      @default("COMPANY") // INDIVIDUAL, COMPANY
+  name          String
+  email         String?     @unique
+  phone         String?
+  taxId         String?
+  paymentTerms  String?
+  creditLimit   Float?      @default(0.00)
+  isActive      Boolean     @default(true)
+  
+  enquiries     Enquiry[]
+  quotations    Quotation[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Enquiry {
+  id            String        @id @default(uuid())
+  enquiryNumber String        @unique 
+  clientId      String
+  client        Client        @relation(fields: [clientId], references: [id])
+  rating        String        @default("NEW_LEAD") 
+  notes         String?
+  items         EnquiryItem[]
+  quotations    Quotation[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model EnquiryItem {
+  id          String   @id @default(uuid())
+  enquiryId   String
+  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float    @default(0.00)
+  total       Float    @default(0.00)
+}
+
+model Quotation {
+  id              String          @id @default(uuid())
+  quotationNumber String          @unique 
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
+  enquiryId       String?
+  enquiry         Enquiry?        @relation(fields: [enquiryId], references: [id])
+  status          String          @default("DRAFT")
+  totalAmount     Float           @default(0.00)
+  items           QuotationItem[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int       @default(1)
+  unitPrice   Float     @default(0.00)
+  total       Float     @default(0.00)
+}
