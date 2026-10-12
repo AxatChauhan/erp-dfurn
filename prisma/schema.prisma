@@ -19,28 +19,34 @@ model User {
 }
 
 model Client {
-  id              String      @id @default(uuid())
-  clientType      String      @default("BUSINESS") // INDIVIDUAL, BUSINESS
-  name            String      // Individual Name or Company Name
-  contactPerson   String?     // Contact person if BUSINESS
+  id                 String      @id @default(uuid())
+  clientCode         String?     @unique // Sequential e.g., 'DF_CL_000001'
+  clientType         String      @default("BUSINESS") // INDIVIDUAL, BUSINESS
+  name               String      // Individual Name or Company Name
+  contactPerson      String?     // Contact person if BUSINESS
   
-  emails          Json?       // Array of email strings
-  phones          Json?       // Array of phone strings
-  addresses       Json?       // Array of address objects: { label, street, city, state, zip }
+  emails             Json?       // Array of email strings
+  phones             Json?       // Array of phone strings
+  addresses          Json?       // Array of address objects: { label, street, city, state, zip, isBilling, isShipping }
   
-  sourceCategory  String?     // e.g., 'DIRECT', 'SOCIAL_MEDIA', 'WEBSITE', 'REFERRAL'
-  sourceName      String?     // e.g., name of referrer
+  sourceCategory     String?     // e.g., 'DIRECT', 'SOCIAL_MEDIA', 'WEBSITE', 'REFERRAL', 'ARCHITECT_DESIGNER'
+  sourceName         String?     // e.g., name of referrer
   
-  taxId           String?     // GSTIN
-  paymentTerms    String?
-  creditLimit     Float?      @default(0.00)
-  isActive        Boolean     @default(true)
+  taxId              String?     // GSTIN (15 chars)
+  pan                String?     // PAN (10 chars)
+  state              String?     // Primary State (auto-derived from GSTIN or manual)
+  country            String?     @default("IN")
   
-  enquiries       Enquiry[]
-  quotations      Quotation[]
+  paymentTerms       String?
+  creditLimit        Float?      @default(0.00)
+  outstandingBalance Float?      @default(0.00)
+  isActive           Boolean     @default(true)
   
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  enquiries          Enquiry[]
+  quotations         Quotation[]
+  
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 }
 
 model Enquiry {
