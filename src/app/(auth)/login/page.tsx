@@ -15,18 +15,34 @@ export default function LoginPage() {
     setError('');
     setIsSigningIn(true);
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
 
-    if (res.ok) {
-      window.location.href = '/clients';
-    } else {
-      setError('Invalid username or password');
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        window.location.replace('/clients');
+      } else {
+        setError(data.error || 'Invalid username or password');
+        setIsSigningIn(false);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Network error, please check connection.');
       setIsSigningIn(false);
     }
+  };
+
+  const fillCredentials = (u: string, p: string) => {
+    setUsername(u);
+    setPassword(p);
+    setError('');
   };
 
   return (
@@ -77,6 +93,9 @@ export default function LoginPage() {
               <input 
                 required 
                 type="text" 
+                placeholder="e.g. admin"
+                autoCapitalize="none"
+                autoCorrect="off"
                 className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-[#ff7700] focus:outline-none text-sm font-semibold text-slate-900 transition-colors"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
@@ -87,6 +106,7 @@ export default function LoginPage() {
               <input 
                 required 
                 type="password" 
+                placeholder="••••••"
                 className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-[#ff7700] focus:outline-none text-sm font-semibold text-slate-900 transition-colors"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -107,6 +127,31 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Quick Demo Logins */}
+          <div className="mt-8 pt-6 border-t border-slate-200/80">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 text-center">
+              Quick Fill Credentials
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => fillCredentials('admin', 'admin')}
+                className="p-2.5 bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 rounded-xl text-left transition-all cursor-pointer group"
+              >
+                <div className="text-xs font-bold text-slate-800 group-hover:text-orange-600">Super Admin</div>
+                <div className="text-[11px] text-slate-400 font-mono">admin / admin</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillCredentials('Tester_User', 'Tester_User')}
+                className="p-2.5 bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 rounded-xl text-left transition-all cursor-pointer group"
+              >
+                <div className="text-xs font-bold text-slate-800 group-hover:text-orange-600">Sales Rep</div>
+                <div className="text-[11px] text-slate-400 font-mono">Tester_User</div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
