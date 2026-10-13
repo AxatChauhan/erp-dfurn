@@ -3,10 +3,21 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
-  const isApiAuth = request.nextUrl.pathname.startsWith('/api/auth');
+  const { pathname } = request.nextUrl;
 
-  if (!token && !isLoginPage && !isApiAuth) {
+  // Allow static assets, images, and auth APIs through unconditionally
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/auth') ||
+    pathname === '/favicon.ico' ||
+    /\.(png|jpg|jpeg|svg|webp|ico|gif|css|js)$/i.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
+  const isLoginPage = pathname.startsWith('/login');
+
+  if (!token && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -18,5 +29,14 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - static file extensions (svg, png, jpg, jpeg, gif, webp, ico)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+  ],
 };
