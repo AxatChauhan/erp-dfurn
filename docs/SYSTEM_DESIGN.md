@@ -6,11 +6,12 @@
 **Problem Solved**: Centralizing client management, streamlining the sales pipeline (from lead to converted order), standardizing quotation generation, and enforcing rigorous approval workflows to prevent unauthorized discounts or unapproved specs.
 
 ### What is Built So Far:
-- **Authentication & RBAC**: Complete user session management with `SUPER_ADMIN` and `SALES` roles.
-- **Client Management**: Creation and tracking of B2B and B2C clients, including multiple contacts and addresses.
-- **Enquiries (CRM/Kanban)**: A visual pipeline for managing sales leads, including quick-add for clients, status tracking, drag-and-drop state management, and an automated audit trail.
-- **Quotations (Approval Engine)**: Generation of financial quotes from enquiries, with a strict role-based approval pipeline preventing sales reps from finalizing unapproved quotes.
-- **Audit Trails**: Visual, timestamped timelines for both Enquiries and Quotations.
+- **Authentication & RBAC**: Database-backed user session management with `SUPER_ADMIN` and `SALES` roles, setting `auth_token`, `user_role`, `user_name`, and `user_id` session cookies with Next.js edge middleware enforcement.
+- **Client Management**: Creation and tracking of B2B (`BUSINESS`) and B2C (`INDIVIDUAL`) clients, including multiple contacts and addresses.
+- **Enquiries (CRM/Kanban)**: A visual pipeline for managing sales leads, synchronized with live HRM active sales representatives, automated stage/outcome tracking, client quick-add, and quotation creation triggers.
+- **HRM (Human Resource Management)**: Complete employee directory with department categorization, employee codes (`HR-0001`), salary structures (monthly/daily wages), biometric daily punch logging (in/out punches, auto-hours/overtime calculation), and monthly muster roll registers.
+- **Quotations (Approval Engine)**: Generation of financial quotes sequentially numbered (`DF_QT_000001`), linked directly to Enquiries (`enquiryId`), retaining line-item specifications (`expectedDimensions`, `materialPreference`, `clientComment`), and strict role-based approval flows.
+- **Audit Trails**: Visual, timestamped timelines for Enquiries, Quotations, and HRM Attendance.
 
 *(Note: The requested "Catalog / customizable cabinet sample product" module does not currently exist as a standalone feature in the codebase or database schema. It has been marked for future implementation.)*
 
@@ -57,10 +58,16 @@ flowchart TD
 
 ## 3. Authentication and Roles
 
-Login is handled natively (currently mapped through `api/auth/login`).
-Access is enforced:
-- **UI Level**: Components read the `userRole` and conditionally render buttons (e.g., hiding "Approve Quotation" for Sales users).
-- **API Level**: Endpoints check session tokens/headers to authorize mutations.
+Authentication is backed by the database `User` table (handled via `POST /api/auth/login`).
+Access and sessions are enforced:
+- **Session Cookies**:
+  - `auth_token`: HTTP-only session token (`token-${user.id}`) validated by Edge Middleware (`src/middleware.ts`).
+  - `user_role`: User privilege level (`SUPER_ADMIN`, `SALES`, etc.).
+  - `user_name`: Display name of the logged-in user.
+  - `user_id`: Database UUID of the authenticated user, automatically linked to `Enquiry.enteredById`.
+- **Edge Middleware**: Blocks unauthenticated access across all dashboard and API routes, redirecting unauthenticated requests to `/login`.
+- **UI Level**: Components read the `userRole` and conditionally render privileges (e.g., hiding "Approve Quotation" for Sales reps).
+- **API Level**: Endpoints enforce role and permission checks before mutating records.
 
 ### Permissions Table
 
@@ -68,11 +75,12 @@ Access is enforced:
 | :--- | :--- | :--- |
 | **Login** | Yes | Yes |
 | **View Clients** | Yes (Own / All depending on scope) | Yes (All) |
-| **Create Enquiries** | Yes | Yes |
+| **Create Enquiries** | Yes (Assigns HRM sales reps) | Yes |
 | **Move Kanban Cards**| Yes | Yes |
 | **Create Quotes** | Yes (Status: `DRAFT`) | Yes |
 | **Submit for Approval**| Yes | Yes |
 | **Approve Quotes** | No | Yes |
+| **HRM & Attendance** | Read-Only / Self | Full Access (Create/Edit/Muster) |
 
 ---
 
@@ -88,6 +96,66 @@ erDiagram
         String username UK
         String password
         String role
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Department {
+        String id PK
+        String name UK
+        String description
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Employee {
+        String id PK
+        String employeeCode UK
+        String fullName
+        String phone
+        String email
+        String departmentId FK
+        String designation
+        String employmentType
+        DateTime joiningDate
+        Float monthlySalary
+        Float dailyRate
+        String bankName
+        String accountNumber
+        String ifscCode
+        String emergencyContactName
+        String emergencyContactPhone
+        Boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    AttendancePunch {
+        String id PK
+        String employeeId FK
+        DateTime punchTime
+        String punchType
+        String notes
+        DateTime createdAt
+    }
+
+    MonthlyAttendance {
+        String id PK
+        String employeeId FK
+        Int year
+        Int month
+        Float presentDays
+        Float halfDays
+        Float absentDays
+        Float paidLeaveDays
+        Float weeklyOffDays
+        Float holidays
+        Float totalOvertimeHours
+        Float payableDays
+        Float grossSalary
+        Float deductions
+        Float netSalary
+        String status
         DateTime createdAt
         DateTime updatedAt
     }
@@ -114,7 +182,13 @@ erDiagram
         String id PK
         String enquiryNumber UK
         String clientId FK
+        String salespersonId FK
+        String salespersonName
+        String enteredById FK
+        String enteredByName
         String status
+        String stage
+        String outcome
         String expectedTimeline
         Float estimatedBudget
         String propertyType
@@ -136,6 +210,7 @@ erDiagram
         Float total
         String expectedDimensions
         String materialPreference
+        String clientComment
     }
 
     Quotation {
@@ -156,54 +231,91 @@ erDiagram
         Int quantity
         Float unitPrice
         Float total
+        String expectedDimensions
+        String materialPreference
+        String clientComment
     }
 
-    User ||--o{ Enquiry : "manages (implied)"
+    Department ||--o{ Employee : "employs"
+    Employee ||--o{ Enquiry : "assigned as salesperson"
+    Employee ||--o{ AttendancePunch : "punches"
+    Employee ||--o{ MonthlyAttendance : "accumulates"
+    User ||--o{ Enquiry : "entered by"
     Client ||--o{ Enquiry : "places"
     Client ||--o{ Quotation : "receives"
     Enquiry ||--o{ EnquiryItem : "contains"
-    Enquiry ||--o| Quotation : "converts into"
+    Enquiry ||--o{ Quotation : "generates"
     Quotation ||--o{ QuotationItem : "contains"
 ```
 
 ### 4.2 Table Dictionary
 
 #### `User`
-Manages application access.
+Manages application authentication and system users.
 - `id`: UUID (PK)
 - `name`: String
 - `username`: String (Unique, Indexed)
-- `password`: String (Hashed via bcrypt)
-- `role`: String (Default: `SALES`)
+- `password`: String (Stored securely)
+- `role`: String (`SUPER_ADMIN`, `SALES`)
+
+#### `Department`
+Organizational units within the manufacturing unit.
+- `id`: UUID (PK)
+- `name`: String (Unique, e.g. "Office & Sales", "Carpentry", "Edge Banding", "Assembly")
+- `description`: String
+
+#### `Employee`
+HR master record for office staff, sales representatives, and factory technicians.
+- `id`: UUID (PK)
+- `employeeCode`: String (Unique sequential, e.g. "HR-0001")
+- `fullName`: String (Required)
+- `departmentId`: UUID (FK to Department, optional)
+- `designation`: String (e.g. "Sales Executive", "Master Carpenter")
+- `employmentType`: String (`FULL_TIME`, `DAILY_WAGER`, `CONTRACT`, `PART_TIME`)
+- `monthlySalary` / `dailyRate`: Wage rates for payroll computation
+- `bankName`, `accountNumber`, `ifscCode`: Financial disbursement details
+- `isActive`: Boolean (Default: `true`)
+
+#### `AttendancePunch` & `MonthlyAttendance`
+Biometric / daily attendance records and aggregated monthly payroll registers.
+- `AttendancePunch`: Timestamped `IN` / `OUT` punch events per employee with auto-calculated duration.
+- `MonthlyAttendance`: Aggregated days (present, half-day, absent, leaves, overtime hours) and calculated net salary.
 
 #### `Client`
-Stores B2B/B2C profiles.
+Stores B2B (`BUSINESS`) and B2C (`INDIVIDUAL`) client profiles.
 - `id`: UUID (PK)
-- `clientType`: String (Default: `BUSINESS`)
+- `clientType`: String (`BUSINESS` or `INDIVIDUAL`)
 - `name`: String (Required)
-- `emails`, `phones`, `addresses`: JSON arrays for flexible multi-contact mapping.
-- `taxId`: String (e.g., GSTIN).
-- `creditLimit`: Float (Default: 0.00).
+- `emails`, `phones`, `addresses`: JSON arrays for multi-contact mapping
+- `taxId`: String (e.g., GSTIN)
+- `creditLimit`: Float (Default: 0.00)
 
 #### `Enquiry`
-The core CRM lead record.
+The core CRM lead record, linked relationally to both HRM sales staff and entered users.
 - `id`: UUID (PK)
-- `enquiryNumber`: String (Unique auto-generated ID like ENQ-1001)
+- `enquiryNumber`: String (Unique auto-generated sequential ID like `DF_ENQ_000001`)
 - `clientId`: UUID (FK to Client)
-- `status`: String (Default: `NEW`). Permitted values: `NEW`, `IN_PROGRESS`, `QUALIFIED`, `DROPPED`, `CONVERTED`.
-- `estimatedBudget`: Float.
-- `createdAt` / `updatedAt`: DateTime (Drives the Audit Log timeline).
+- `salespersonId`: UUID (FK to Employee — dynamic HRM sales rep link)
+- `enteredById`: UUID (FK to User — tracks who created the lead)
+- `status`: String (`NEW`, `IN_PROGRESS`, `QUALIFIED`, `DROPPED`, `CONVERTED`), kept in sync with `stage`
+- `stage`: String (`New`, `Contacted`, `Site Visit Scheduled`, `Quoted`, `Follow-up`)
+- `estimatedBudget`: Float
+- `createdAt` / `updatedAt`: DateTime (Drives the Audit Log timeline)
 
 #### `EnquiryItem`
 Line items for an enquiry.
 - `enquiryId`: UUID (FK to Enquiry, `onDelete: Cascade`)
 - `expectedDimensions`: String (e.g. "1200x600x750mm")
-- `materialPreference`: String (e.g. "Teak Wood")
+- `materialPreference`: String (e.g. "Action TESA HDHMR, 1mm Merino Laminate")
+- `clientComment`: String
 
 #### `Quotation` & `QuotationItem`
 Financial projection based on Enquiries.
-- `status`: String (Default: `DRAFT`). Permitted values: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`.
-- `totalAmount`: Float (Calculated sum of child items).
+- `quotationNumber`: String (Auto-generated sequential ID: `DF_QT_000001`)
+- `enquiryId`: UUID (FK to Enquiry, relational cross-module linkage)
+- `status`: String (`DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`)
+- `totalAmount`: Float (Calculated sum of child items)
+- `QuotationItem`: Line items with full specifications matching Enquiry (`expectedDimensions`, `materialPreference`, `clientComment`)
 
 ---
 
@@ -211,31 +323,45 @@ Financial projection based on Enquiries.
 
 ### 5.1 Clients Module
 - **Purpose**: Directory of all potential and active buyers.
-- **Workflow**: User visits `/clients`, clicks "New Client", fills out name, type, and JSON contact arrays.
+- **Workflow**: User visits `/clients`, clicks "New Client", fills out name, type (`BUSINESS` / `INDIVIDUAL`), and JSON contact arrays.
 - **Components**: `src/app/(dashboard)/clients/page.tsx`
 - **API**: `GET /api/clients`, `POST /api/clients`
 
 ### 5.2 Enquiries (Kanban CRM)
-- **Purpose**: Visual tracking of sales leads.
+- **Purpose**: Visual tracking of sales leads with dynamic HRM salesperson integration.
 - **Workflow**: 
   1. Click "+ New Enquiry".
-  2. If the client is new, use the embedded "+ Quick Add" feature directly inside the modal to spawn a client record without losing context.
-  3. Lead appears in the "NEW" column.
-  4. Drag and Drop lead across columns.
-  5. Click card to view details or click "View Log" for the timeline.
-- **Components**: `src/app/(dashboard)/enquiries/page.tsx` (Contains `EnquiriesPage`, `EnquiryForm`, `EnquiryDetailsModal`).
-- **Database impact**: Writes to `Enquiry`, `EnquiryItem`, and optionally `Client`.
+  2. Dynamically select Assigned Rep from active HRM staff fetched from `/api/hrm/employees?status=active`.
+  3. Creator is automatically attached via `user_id` session cookie.
+  4. Move cards across stages; `status` and `stage` remain synchronized.
+  5. Click card to view details, linked quotations, or click "+ Create Quote for Lead" to jump directly into Quotations with pre-filled enquiry data.
+- **Components**: `src/app/(dashboard)/enquiries/page.tsx`
+- **API**: `GET /api/enquiries`, `POST /api/enquiries`, `PUT /api/enquiries/[id]`
 
 ### 5.3 Quotations (Approval Engine)
-- **Purpose**: Financial proposal generation with strict oversight.
+- **Purpose**: Financial proposal generation with strict oversight and sequential numbering.
 - **Workflow**:
-  1. Triggered from an Enquiry clicking "Create Quote", or manually.
-  2. Sales Rep adds line items and pricing.
-  3. Status is `DRAFT`. Rep clicks "Submit for Approval".
-  4. SuperAdmin logs in, views `PENDING_APPROVAL` quote, clicks "Approve Quotation".
-- **Components**: `src/app/(dashboard)/quotations/page.tsx` (Contains `QuotationsPage`, `QuotationForm`, `QuotationViewCard`).
+  1. Triggered from an Enquiry clicking "+ Create Quote for Lead" (passes `?enquiryId=...`), or manually created.
+  2. Sequential ID `DF_QT_000001` is assigned automatically.
+  3. Preserves line-item dimensions, material preferences, and comments.
+  4. Status starts as `DRAFT`. Rep clicks "Submit for Approval".
+  5. SuperAdmin logs in, views `PENDING_APPROVAL` quote, clicks "Approve Quotation".
+- **Components**: `src/app/(dashboard)/quotations/page.tsx`
+- **API**: `GET /api/quotations`, `POST /api/quotations`, `PUT /api/quotations/[id]`
 
-### 5.4 Catalog / Custom Cabinet Product
+### 5.4 HRM (Human Resource Management) & Attendance
+- **Purpose**: End-to-end workforce management for sales representatives and factory staff.
+- **Workflows**:
+  1. **Employee Master (`/hrm/employees`)**: Register employees with codes (`HR-0001`), departments, salary types, bank accounts, and active status.
+  2. **Daily Attendance (`/hrm/attendance`)**: Log biometric punch events (`IN`/`OUT`), compute real-time shift duration and overtime hours.
+  3. **Attendance Register (`/hrm/attendance-register`)**: View monthly muster rolls, compute payable days, gross salary, deductions, and net wage payouts.
+- **Components**:
+  - `src/app/(dashboard)/hrm/employees/page.tsx`
+  - `src/app/(dashboard)/hrm/attendance/page.tsx`
+  - `src/app/(dashboard)/hrm/attendance-register/page.tsx`
+- **API**: `/api/hrm/employees`, `/api/hrm/attendance/punch`, `/api/hrm/attendance/register`
+
+### 5.5 Catalog / Custom Cabinet Product
 - **Status**: **[NEEDS CONFIRMATION]**. While requested in the prompt, there is currently no `Catalog` or `Product` table in the database, nor a `/catalog` route. Future implementation requires scoping.
 
 ---

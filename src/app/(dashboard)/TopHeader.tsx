@@ -7,12 +7,16 @@ export default function TopHeader({ userName }: { userName: string }) {
   const pathname = usePathname();
   
   let pageTitle = 'Dashboard';
-  if (pathname.includes('/enquiries')) pageTitle = 'Enquiries';
+  if (pathname.includes('/enquiries')) pageTitle = 'Enquiries Pipeline';
   if (pathname.includes('/quotations')) pageTitle = 'Quotations';
-  if (pathname.includes('/clients')) pageTitle = 'Clients';
-  if (pathname.includes('/users')) pageTitle = 'Admin';
+  if (pathname.includes('/clients')) pageTitle = 'Clients Directory';
+  if (pathname.includes('/hrm/employees')) pageTitle = 'HRM: Employees Directory';
+  if (pathname.includes('/hrm/attendance-register')) pageTitle = 'HRM: Muster Roll Register';
+  if (pathname.includes('/hrm/attendance')) pageTitle = 'HRM: Daily Shop-Floor Attendance';
+  if (pathname === '/hrm') pageTitle = 'HRM & Factory';
+  if (pathname.includes('/users')) pageTitle = 'System Administration';
 
-  const userInitials = userName.substring(0, 2).toUpperCase();
+  const userInitials = userName && userName.length >= 2 ? userName.substring(0, 2).toUpperCase() : 'SA';
 
   return (
     <header className="h-[72px] flex items-center justify-between px-8 bg-[#f4f3ed] flex-shrink-0 border-b border-gray-200/50">

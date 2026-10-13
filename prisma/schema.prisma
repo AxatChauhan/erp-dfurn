@@ -13,29 +13,38 @@ model User {
   name      String
   username  String   @unique
   password  String   // In a real app, hash this!
-  role      String   @default("SALES") // SUPER_ADMIN, SALES, MANAGER, etc.
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role              String    @default("SALES") // SUPER_ADMIN, SALES, MANAGER, etc.
+  enteredEnquiries  Enquiry[] @relation("EnteredByUser")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model Client {
   id                 String      @id @default(uuid())
-  clientCode         String?     @unique // Sequential e.g., 'DF_CL_000001'
-  clientType         String      @default("BUSINESS") // INDIVIDUAL, BUSINESS
-  name               String      // Individual Name or Company Name
-  contactPerson      String?     // Contact person if BUSINESS
+  clientCode         String?     @unique // Sequential e.g., 'DF/C/B2B/00001' or 'DF_CL_000001'
+  clientType         String      @default("Business") // "Business" or "Individual"
+  businessMode       String      @default("B2B") // "B2B" | "B2B2C" | "B2C"
+  name               String      // Display name / Company name / Individual name
+  companyName        String?     // Stored company name if Business
+  contactPerson      String?     // Contact person if Business
   
   emails             Json?       // Array of email strings
-  phones             Json?       // Array of phone strings
-  addresses          Json?       // Array of address objects: { label, street, city, state, zip, isBilling, isShipping }
+  phones             Json?       // Array of normalized E.164 phone strings
+  phoneDetails       Json?       // Array of { e164, dial, number, iso2, valid, kind }
+  addresses          Json?       // Array of address objects: { id, addressLine1, addressLine2, city, state, pincode, country, isBilling }
   
-  sourceCategory     String?     // e.g., 'DIRECT', 'SOCIAL_MEDIA', 'WEBSITE', 'REFERRAL', 'ARCHITECT_DESIGNER'
+  sourceCategoryId   String?
+  sourceCategory     String?     // e.g., 'Direct', 'Social Media', 'Website', 'Referral', 'Architect/Designer'
   sourceName         String?     // e.g., name of referrer
   
   taxId              String?     // GSTIN (15 chars)
   pan                String?     // PAN (10 chars)
-  state              String?     // Primary State (auto-derived from GSTIN or manual)
-  country            String?     @default("IN")
+  state              String?     // Primary State
+  country            String?     @default("India")
+  countryIso2        String?     @default("IN")
+  
+  pendingValidation  Boolean     @default(false)
+  validationIssues   Json?       // Array of string issues (e.g. from CSV import)
   
   paymentTerms       String?
   creditLimit        Float?      @default(0.00)
@@ -44,6 +53,7 @@ model Client {
   
   enquiries          Enquiry[]
   quotations         Quotation[]
+  jobOrders          JobOrder[]
   
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -51,28 +61,41 @@ model Client {
 
 model Enquiry {
   id               String        @id @default(uuid())
-  enquiryNumber    String        @unique 
+  enquiryNumber    String        @unique // e.g. DF_ENQ_000001
   clientId         String
   client           Client        @relation(fields: [clientId], references: [id])
   
-  status           String        @default("NEW") // NEW, IN_PROGRESS, QUALIFIED, DROPPED, CONVERTED
+  status           String        @default("NEW") // Legacy compatibility
+  stage            String        @default("New") // Monotonic high-water mark: New, Qualified, Quoted, Converted
+  outcome          String        @default("Open") // Open, Lost
+  lostAtStage      String?       // Snapshots stage when marked lost
+  lostReason       String?       // Price Too High, Competitor Chosen, Project Postponed, Budget Cancelled, No Response
+  lostNote         String?
+  
+  // Roles (Clerk vs Sales Owner)
+  enteredById      String?       // Clerk who created the record
+  enteredByName    String?
+  enteredUser      User?         @relation("EnteredByUser", fields: [enteredById], references: [id], onDelete: SetNull)
+  salespersonId    String?       // Lead owner in the field
+  salespersonName  String?
+  salesperson      Employee?     @relation("SalespersonEnquiries", fields: [salespersonId], references: [id], onDelete: SetNull)
   
   // Discovery & Context
-  expectedTimeline String?       // e.g., 'Urgent', '1-3 Months', 'Flexible'
-  estimatedBudget  Float?        
-  propertyType     String?       // e.g., 'Residential', 'Commercial Office'
+  expectedTimeline String?       // 'Urgent (<2 weeks)', '1 Month', '2-3 Months', 'Flexible'
+  estimatedBudget  Float?        // Opportunity value / qualification budget
+  propertyType     String?       // 'Residential', 'Commercial Office', 'Villa', 'Retail'
   
   // Follow-ups & Notes
   nextFollowUp     DateTime?
-  notes            String?       // Keep as a simple string for general notes or a single block of text
+  notes            String?       // Communication log or notes
   
-  // New Additions
-  sourceCategory   String?
+  sourceCategory   String?       // 'DIRECT', 'REFERRAL', 'ARCHITECT', 'WEBSITE', 'INSTAGRAM'
   sourceName       String?
   attachments      Json?         // Array of { name, url }
   
   items            EnquiryItem[]
   quotations       Quotation[]
+  jobOrders        JobOrder[]
   
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -87,30 +110,217 @@ model EnquiryItem {
   unitPrice          Float    @default(0.00)
   total              Float    @default(0.00)
   
-  expectedDimensions String?  // e.g., "1200x600x750mm"
-  materialPreference String?  // e.g., "Teak Wood", "MDF"
+  expectedDimensions String?  // e.g., "2400x600x2100mm"
+  materialPreference String?  // e.g., "Prelam MDF + 1mm Merino Laminate"
+  clientComment      String?  // Exact client voice/spec notes
 }
 
 model Quotation {
-  id              String          @id @default(uuid())
-  quotationNumber String          @unique 
-  clientId        String
-  client          Client          @relation(fields: [clientId], references: [id])
-  enquiryId       String?
-  enquiry         Enquiry?        @relation(fields: [enquiryId], references: [id])
-  status          String          @default("DRAFT")
-  totalAmount     Float           @default(0.00)
-  items           QuotationItem[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id               String             @id @default(uuid())
+  quotationNumber  String             @unique 
+  clientId         String
+  client           Client             @relation(fields: [clientId], references: [id])
+  enquiryId        String?
+  enquiry          Enquiry?           @relation(fields: [enquiryId], references: [id])
+  
+  currentVersionNo Int                @default(1)
+  status           String             @default("GENERATED") // GENERATED, VERIFICATION_REQUIRED, ADMIN_APPROVAL_REQUIRED, APPROVED, NOT_APPROVED, SENT, CONVERTED, NOT_CONVERTED
+  totalAmount      Float              @default(0.00)
+  
+  items            QuotationItem[]
+  versions         QuotationVersion[]
+  jobOrders        JobOrder[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model QuotationVersion {
+  id                  String                      @id @default(uuid())
+  quotationId         String
+  quotation           Quotation                   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  versionNo           Int                         @default(1)
+  versionCode         String                      // e.g. DF_QT_000001-v1
+  status              String                      @default("GENERATED")
+  
+  // Pricing & Commercials
+  grossTotal          Float                       @default(0.00)
+  overallDiscountType String?                     // 'flat' | 'percent'
+  overallDiscountVal  Float?                      @default(0.00)
+  overallDiscountAmt  Float                       @default(0.00)
+  discountedGross     Float                       @default(0.00)
+  
+  extraCostsTotal     Float                       @default(0.00)
+  gstApplicable       Boolean                     @default(true)
+  gstRatePct          Float                       @default(18.0)
+  gstAmount           Float                       @default(0.00)
+  grandTotal          Float                       @default(0.00)
+  
+  // Items, Additional Charges & Terms
+  items               QuotationItem[]
+  additionalCharges   QuotationAdditionalCharge[]
+  terms               Json?                       // snapshot array of { id, title, body }
+  
+  // Approvals & Audit Trail
+  createdById         String?
+  createdByName       String?
+  verifiedById        String?
+  verifiedByName      String?
+  verifiedAt          DateTime?
+  approvedById        String?
+  approvedByName      String?
+  approvedAt          DateTime?
+  sentAt              DateTime?
+  followupDoneAt      Json?                       // Array of ISO timestamp strings
+  notConvertedReason  String?
+  supersededAt        DateTime?
+  
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
 }
 
 model QuotationItem {
-  id          String    @id @default(uuid())
-  quotationId String
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  description String
-  quantity    Int       @default(1)
-  unitPrice   Float     @default(0.00)
-  total       Float     @default(0.00)
+  id                 String            @id @default(uuid())
+  quotationId        String?
+  quotation          Quotation?        @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  versionId          String?
+  version            QuotationVersion? @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  
+  description        String
+  quantity           Int               @default(1)
+  unitPrice          Float             @default(0.00)
+  discountType       String?           // 'flat' | 'percent'
+  discountValue      Float?            @default(0.00)
+  discountAmount     Float?            @default(0.00)
+  total              Float             @default(0.00)
+  
+  expectedDimensions String?           // e.g. "2400x600x2100mm"
+  materialPreference String?           // e.g. "Prelam MDF + 1mm Merino Laminate"
+  clientComment      String?           // Client notes
 }
+
+model QuotationAdditionalCharge {
+  id        String           @id @default(uuid())
+  versionId String
+  version   QuotationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  title     String           // e.g. 'Transportation & Freight', 'Installation & Erection'
+  amount    Float            @default(0.00)
+  taxable   Boolean          @default(true)
+}
+
+// -------------------------------------------------------------
+// HRM MODULE: EMPLOYEES, DEPARTMENTS & SHOP-FLOOR ATTENDANCE
+// -------------------------------------------------------------
+
+model Department {
+  id          String     @id @default(uuid())
+  name        String     @unique // e.g., "Carpentry", "Edge Banding", "Finishing & Polish", "Assembly", "Office & Sales"
+  code        String?    // e.g., "DEP-CARP"
+  employees   Employee[]
+  createdAt   DateTime   @default(now())
+}
+
+model Employee {
+  id                    String              @id @default(uuid())
+  employeeCode          String              @unique // e.g., "HR-0001"
+  name                  String
+  phone                 String
+  personalEmail         String?
+  gender                String              @default("Male") // Male, Female, Other
+  dateOfBirth           DateTime?
+  dateOfJoining         DateTime            @default(now())
+  
+  departmentId          String
+  department            Department          @relation(fields: [departmentId], references: [id])
+  designation           String              // e.g., "Master Carpenter", "Helper", "Foreman"
+  
+  employmentType        String              @default("Permanent") // Permanent, Contract, DailyWage, Temporary
+  payType               String              @default("Daily")     // Daily, Monthly
+  baseRate              Float               @default(0.0)         // Daily wage in ₹ or Monthly salary in ₹
+  
+  // Identity & Bank
+  aadhaarNumber         String?
+  panNumber             String?
+  bankName              String?
+  accountNumber         String?
+  ifscCode              String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  
+  isActive              Boolean             @default(true)
+  punches               AttendancePunch[]
+  monthlyEntries        MonthlyAttendance[]
+  salesEnquiries        Enquiry[]           @relation("SalespersonEnquiries")
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model AttendancePunch {
+  id          String    @id @default(uuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date        String    // Format: "YYYY-MM-DD"
+  type        String    // "In" or "Out"
+  occurredAt  DateTime  @default(now())
+  source      String    @default("UI") // "UI" or "Biometric"
+}
+
+model MonthlyAttendance {
+  id            String    @id @default(uuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          String    // Format: "YYYY-MM-DD"
+  status        String    @default("P") // "P" (Present), "A" (Absent), "H" (Half Day)
+  checkInTime   String?   // e.g., "09:05 AM"
+  overtimeHours Float?    @default(0.0)
+  
+  @@unique([employeeId, date])
+}
+
+// -------------------------------------------------------------
+// SALES: SOURCE CATEGORIES & JOB ORDERS
+// -------------------------------------------------------------
+
+model SourceCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JobOrder {
+  id                 String     @id @default(uuid())
+  jobNumber          String     @unique // e.g. DF/JO/26-27/00001
+  clientId           String
+  client             Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  enquiryId          String?
+  enquiry            Enquiry?   @relation(fields: [enquiryId], references: [id], onDelete: SetNull)
+  quotationId        String?
+  quotation          Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  
+  orderTypeName      String?    @default("Direct Order")
+  orderDate          DateTime   @default(now())
+  productionDueDate  DateTime?
+  status             String     @default("In Progress") // Planned, In Progress, On Hold, Completed, Cancelled
+  poNumber           String?
+  quotationCode      String?
+  enquiryNumber      String?
+  
+  billingCurrency    String     @default("INR")
+  exchangeRate       Float      @default(1.0)
+  grandTotal         Float      @default(0.0)
+  
+  bomStatus          String     @default("Pending") // Pending, In Progress, Completed
+  procurementStatus  String     @default("Pending") // Pending, In Progress, Completed
+  productionStatus   String     @default("Pending") // Pending, In Progress, Completed
+  
+  holdReason         String?
+  cancelledReason    String?
+  projectManagerName String?
+  salespersonName    String?
+  boqLines           Json?      // Array of { name, quantity, unit, lineTotal, refId }
+  
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
