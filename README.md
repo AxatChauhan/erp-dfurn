@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# D'furn Modular Systems ERP
 
-## Getting Started
+An enterprise-grade ERP and manufacturing operations platform built specifically for modular furniture manufacturing, sales pipelines, client relationships, quoting workflows, and factory shop-floor human resource management.
 
-First, run the development server:
+🚀 **Live Production URL:** [https://optimistic-carson-blush.vercel.app](https://optimistic-carson-blush.vercel.app)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔑 Demo Access Credentials
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The system comes pre-configured with multi-tier role-based authentication. You can log in using any of the following credentials (or use the 1-click Quick-Fill buttons on the login page):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Role | Username | Password | Permissions & Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `admin` | `admin` | Full system access; directly creates, saves, approves, and rejects quotations; manages users |
+| **Sales Rep** | `Tester_User` | `Tester_User` | Creates enquiries & draft quotes; submits quotations for admin verification |
+| **Sales Rep** | `sales` | `sales` | Standard sales workflow and client interaction |
+| **Factory Manager** | `manager` | `manager` | Factory floor operations, attendance registers, and job orders |
 
-## Learn More
+*Note: Username matching is case-insensitive and trims whitespace automatically.*
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏗️ Core Modules
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1. Clients Management (`/clients`)
+- **Intelligent Client Directory**: High-density view with responsive insight metrics (Total Clients, Active Pipeline, GST Registered, Pending Followups).
+- **In-Place Row Expansion**: Smooth CSS Grid transition drawer for client details without layout shift.
+- **1-Click WhatsApp & Phone Calling**: Instant communication triggers directly from contact pills.
+- **GSTIN & PAN Parsing**: Auto-detects state code and validates tax ID format.
+- **Duplicate Detection**: Real-time validation preventing duplicate phone numbers.
+- **Bulk CSV Import & Template**: Downloadable schema template and validation commit engine.
 
-## Deploy on Vercel
+### 2. Quotations & Pricing Workflow (`/quotations`)
+- **Role-Based Approval Workflow**:
+  - **Super Admin**: Saves and approves quotes directly without requiring verification.
+  - **Sales Users**: Quotes default to `PENDING_APPROVAL` and require Super Admin approval.
+- **Multi-Version Quoting**: Create revisions (V1, V2...) while maintaining historical audit records.
+- **Financial Calculations**: Real-time discount (percentage or fixed amount), extra costs, and GST calculation.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 3. Enquiries Pipeline (`/enquiries`)
+- Lead tracking board with status stages (`NEW`, `IN_PROGRESS`, `QUALIFIED`, `CONVERTED`, `DROPPED`).
+- Instant 1-click conversion from qualified lead to a draft Quotation.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 4. Human Resource Management (`/hrm`)
+- **Department Management**: Carpentry, Edge Banding, Finishing & Polish, Assembly, Metal Fabrication, Office & Sales.
+- **Daily Attendance Floor Board**: Real-time status buckets (Not Checked In, On-Going / Working, Checked Out).
+- **Monthly Mustard Roll Register**: Grid matrix (1–31 days) with quick attendance toggles (Present, Absent, Half-Day) and overtime hour tracking.
+
+### 5. Layout & Ergonomics
+- **Hover-Expand Navigation**: Sidebar expands smoothly on hover with 0ms dashboard layout shift using a fixed anchor.
+- **Non-Scrollable Chrome**: Factory desktop ergonomics designed for ultra-wide monitors and high contrast shop-floor viewing.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 16.4 (App Router)](https://nextjs.org/)
+- **Runtime**: React 19 / Turbopack
+- **Language**: TypeScript 5
+- **Styling**: Tailwind CSS
+- **Database ORM**: [Prisma ORM 5.20](https://www.prisma.io/)
+- **Database**: PostgreSQL (Supabase Connection Pooler)
+- **Deployment**: Vercel Serverless Platform
+
+---
+
+## 💻 Local Development Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/AxatChauhan/erp-dfurn.git
+   cd erp-dfurn
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables:**
+   Create `.env` in the root directory:
+   ```env
+   DATABASE_URL="postgresql://user:password@host:6543/postgres?pgbouncer=true"
+   DIRECT_URL="postgresql://user:password@host:5432/postgres"
+   ```
+
+4. **Initialize Prisma Client:**
+   ```bash
+   npx prisma generate
+   ```
+
+5. **Start Dev Server:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 📄 License
+
+Proprietary — Built for D'furn Modular Systems.
