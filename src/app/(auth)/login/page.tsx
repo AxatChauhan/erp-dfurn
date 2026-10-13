@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LOGO_DATA_URI } from '@/lib/logo';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -37,7 +38,7 @@ export default function LoginPage() {
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center justify-center mb-8 w-full max-w-sm border border-slate-100 z-10">
-          <img src="/logo.png" alt="d'furn" className="h-14 object-contain" />
+          <img src={LOGO_DATA_URI} alt="d'furn" className="h-14 object-contain" />
           <span className="text-[11px] font-bold text-gray-400 tracking-[0.25em] uppercase mt-2">
             ERP System
           </span>
@@ -55,7 +56,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
             <div className="flex flex-col items-center mb-6">
-              <img src="/logo.png" alt="d'furn" className="h-10 object-contain" />
+              <img src={LOGO_DATA_URI} alt="d'furn" className="h-10 object-contain" />
               <span className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase mt-1">
                 ERP System
               </span>
