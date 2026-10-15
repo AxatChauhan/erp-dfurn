@@ -57,6 +57,11 @@ model Client {
   
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
+
+  @@index([createdAt(sort: Desc)])
+  @@index([clientType, businessMode])
+  @@index([countryIso2])
+  @@index([isActive])
 }
 
 model Enquiry {
@@ -99,6 +104,11 @@ model Enquiry {
   
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+
+  @@index([clientId])
+  @@index([stage, outcome])
+  @@index([createdAt(sort: Desc)])
+  @@index([salespersonId])
 }
 
 model EnquiryItem {
@@ -132,6 +142,11 @@ model Quotation {
   jobOrders        JobOrder[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  @@index([clientId])
+  @@index([enquiryId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
 }
 
 model QuotationVersion {
@@ -176,6 +191,9 @@ model QuotationVersion {
   
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
+
+  @@index([quotationId, versionNo(sort: Desc)])
+  @@index([status])
 }
 
 model QuotationItem {
@@ -196,6 +214,9 @@ model QuotationItem {
   expectedDimensions String?           // e.g. "2400x600x2100mm"
   materialPreference String?           // e.g. "Prelam MDF + 1mm Merino Laminate"
   clientComment      String?           // Client notes
+
+  @@index([quotationId])
+  @@index([versionId])
 }
 
 model QuotationAdditionalCharge {
@@ -263,6 +284,8 @@ model AttendancePunch {
   type        String    // "In" or "Out"
   occurredAt  DateTime  @default(now())
   source      String    @default("UI") // "UI" or "Biometric"
+
+  @@index([employeeId, date])
 }
 
 model MonthlyAttendance {
@@ -275,6 +298,7 @@ model MonthlyAttendance {
   overtimeHours Float?    @default(0.0)
   
   @@unique([employeeId, date])
+  @@index([date])
 }
 
 // -------------------------------------------------------------
@@ -322,5 +346,9 @@ model JobOrder {
   
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([orderDate(sort: Desc)])
 }
 
