@@ -8,6 +8,40 @@ const dayDiff = (a: string | Date, b: string | Date) => {
   return Math.round((d2 - d1) / DAY_MS);
 };
 
+interface CachedCompanyTotals {
+  totals: Record<string, number>;
+  totalValue: number;
+  expiresAt: number;
+}
+let companyTotalsCache: CachedCompanyTotals | null = null;
+
+async function getCompanyTotals(): Promise<{ totals: Record<string, number>; totalValue: number }> {
+  const now = Date.now();
+  if (companyTotalsCache && companyTotalsCache.expiresAt > now) {
+    return { totals: companyTotalsCache.totals, totalValue: companyTotalsCache.totalValue };
+  }
+
+  const allJobOrders = await prisma.jobOrder.findMany({
+    where: { status: { not: 'Cancelled' } },
+    select: { clientId: true, grandTotal: true, exchangeRate: true }
+  });
+
+  const totals: Record<string, number> = {};
+  for (const j of allJobOrders) {
+    const inr = (j.grandTotal || 0) * (j.exchangeRate || 1);
+    totals[j.clientId] = (totals[j.clientId] || 0) + inr;
+  }
+  const totalValue = Object.values(totals).reduce((s, v) => s + v, 0);
+
+  companyTotalsCache = {
+    totals,
+    totalValue,
+    expiresAt: now + 60000,
+  };
+
+  return { totals, totalValue };
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -23,8 +57,8 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // 1. Fetch client's enquiries, quotations, and job orders
-    const [clientEnquiries, clientQuotations, clientJobOrders, allJobOrders] = await Promise.all([
+    // 1. Fetch client's enquiries, quotations, job orders, and cached company-wide rollups in parallel
+    const [clientEnquiries, clientQuotations, clientJobOrders, { totals: companyTotals, totalValue: companyTotalValue }] = await Promise.all([
       prisma.enquiry.findMany({
         where: { clientId: id },
         orderBy: { createdAt: 'desc' },
@@ -44,9 +78,7 @@ export async function GET(
         where: { clientId: id },
         orderBy: { orderDate: 'desc' }
       }),
-      prisma.jobOrder.findMany({
-        select: { clientId: true, grandTotal: true, exchangeRate: true, status: true }
-      })
+      getCompanyTotals()
     ]);
 
     // Format Job Orders with 7-step journey
@@ -140,16 +172,7 @@ export async function GET(
     const averageDaysBetweenOrders =
       dates.length >= 2 ? Math.round(dayDiff(firstOrderDate!, lastOrderDate!) / (dates.length - 1)) : null;
 
-    // Company-wide rollups for share & rank
-    const companyTotals: Record<string, number> = {};
-    allJobOrders
-      .filter(j => j.status !== 'Cancelled')
-      .forEach(j => {
-        const inr = (j.grandTotal || 0) * (j.exchangeRate || 1);
-        companyTotals[j.clientId] = (companyTotals[j.clientId] || 0) + inr;
-      });
-
-    const companyTotalValue = Object.values(companyTotals).reduce((s, v) => s + v, 0);
+    // Company-wide rollups for share & rank (from 60s micro-cache)
     const rankedClientsCount = Object.keys(companyTotals).length;
 
     const sharePct =

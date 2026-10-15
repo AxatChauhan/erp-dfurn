@@ -37,7 +37,11 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(departments);
+    return NextResponse.json(departments, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching departments:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch departments' }, { status: 500 });

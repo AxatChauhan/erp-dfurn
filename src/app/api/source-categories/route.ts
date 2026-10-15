@@ -6,7 +6,14 @@ export async function GET() {
     const categories = await prisma.sourceCategory.findMany({
       orderBy: { name: 'asc' }
     });
-    return NextResponse.json({ sourceCategories: categories });
+    return NextResponse.json(
+      { sourceCategories: categories },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

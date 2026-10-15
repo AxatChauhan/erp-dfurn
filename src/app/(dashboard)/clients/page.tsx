@@ -7,12 +7,15 @@ import {
   Upload, 
   Globe, 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
   Check, 
   Trash2, 
   Edit, 
   ArrowRight, 
   Lock, 
   Search,
+  X,
   AlertCircle
 } from 'lucide-react';
 import ClientDetailModal from './components/ClientDetailModal';
@@ -68,6 +71,14 @@ export default function ClientsPage() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Search & Pagination
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Filters
   const [filterType, setFilterType] = useState<string>('');
   const [filterCountry, setFilterCountry] = useState<string>('');
@@ -80,12 +91,26 @@ export default function ClientsPage() {
   const [animPhase, setAnimPhase] = useState<'opening' | 'closing' | null>(null);
   const animTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clean up any ongoing animation timer on unmount
+  // In-flight fetch cancellation & Hover prefetch cache (60s TTL)
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const prefetchCache = useRef<Map<string, { client: any; activity: any; timestamp: number }>>(new Map());
+
+  // Clean up any ongoing animation timer or abort controller on unmount
   useEffect(() => {
     return () => {
       if (animTimerRef.current) clearTimeout(animTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   // Modals
   const [modalMode, setModalMode] = useState<'detail' | 'wizard' | 'edit' | 'import' | null>(null);
@@ -93,27 +118,65 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchClients();
-  }, [filterType, filterCountry, filterReview]);
+  }, [filterType, filterCountry, filterReview, debouncedSearch, page]);
 
   const fetchClients = async () => {
+    // Abort previous in-flight request if user is typing or toggling filters rapidly
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      if (debouncedSearch) params.set('search', debouncedSearch);
       if (filterType) params.set('type', filterType);
       if (filterCountry) params.set('country', filterCountry);
       if (filterReview) params.set('needsReview', 'true');
+      params.set('page', String(page));
+      params.set('limit', String(limit));
 
-      const res = await fetch(`/api/clients?${params.toString()}`);
+      const res = await fetch(`/api/clients?${params.toString()}`, {
+        signal: controller.signal
+      });
       const data = await res.json();
       if (res.ok) {
         setClients(data.clients || []);
         if (data.sourceCategories) setSourceCategories(data.sourceCategories);
         if (data.kpis) setKpis(data.kpis);
+        if (data.totalPages !== undefined) setTotalPages(data.totalPages);
+        if (data.total !== undefined) setTotalCount(data.total);
       }
-    } catch (err) {
-      console.error('Failed to load clients:', err);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Failed to load clients:', err);
+      }
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Hover prefetching for sub-50ms / 0ms perceived modal opening
+  const prefetchClient = async (clientId: string) => {
+    const cached = prefetchCache.current.get(clientId);
+    if (cached && Date.now() - cached.timestamp < 60000) {
+      return;
+    }
+    try {
+      const [cRes, actRes] = await Promise.all([
+        fetch(`/api/clients/${clientId}`),
+        fetch(`/api/clients/${clientId}/activity`)
+      ]);
+      if (cRes.ok && actRes.ok) {
+        const [client, activity] = await Promise.all([cRes.json(), actRes.json()]);
+        prefetchCache.current.set(clientId, { client, activity, timestamp: Date.now() });
+      }
+    } catch {
+      // Quiet fail on prefetch
     }
   };
 
@@ -215,7 +278,7 @@ export default function ClientsPage() {
     }
   };
 
-  const hasActiveFilters = Boolean(filterType || filterCountry || filterReview);
+  const hasActiveFilters = Boolean(filterType || filterCountry || filterReview || searchTerm);
 
   return (
     <div className="clt-container">
@@ -248,10 +311,32 @@ export default function ClientsPage() {
       {/* 2. FILTER & ACTION TOOLBAR (Photo 1) */}
       <div className="clt-filterbar">
         <div className="clt-filters">
+          {/* Fast Instant Search Bar */}
+          <div className="clt-search-wrapper">
+            <Search size={14} className="clt-search-icon" />
+            <input
+              type="text"
+              className="clt-search-input"
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="clt-search-clear"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
           {/* Segment Chips */}
           <div
             className={`segment-chip ${!filterType ? 'selected' : ''}`}
-            onClick={() => setFilterType('')}
+            onClick={() => { setFilterType(''); setPage(1); }}
           >
             <span>All Clients</span>
             <span className="count">{kpis.total}</span>
@@ -259,7 +344,7 @@ export default function ClientsPage() {
 
           <div
             className={`segment-chip ${filterType === 'Individual' ? 'selected' : ''}`}
-            onClick={() => setFilterType('Individual')}
+            onClick={() => { setFilterType('Individual'); setPage(1); }}
           >
             <span>Individual</span>
             <span className="count">{kpis.individual}</span>
@@ -267,7 +352,7 @@ export default function ClientsPage() {
 
           <div
             className={`segment-chip ${filterType === 'Business' ? 'selected' : ''}`}
-            onClick={() => setFilterType('Business')}
+            onClick={() => { setFilterType('Business'); setPage(1); }}
           >
             <span>Business</span>
             <span className="count">{kpis.business}</span>
@@ -307,6 +392,7 @@ export default function ClientsPage() {
                     onClick={() => {
                       setFilterCountry('');
                       setCountryOpen(false);
+                      setPage(1);
                     }}
                   >
                     <span>All countries</span>
@@ -322,6 +408,7 @@ export default function ClientsPage() {
                       onClick={() => {
                         setFilterCountry(c);
                         setCountryOpen(false);
+                        setPage(1);
                       }}
                     >
                       <span>{c}</span>
@@ -343,7 +430,7 @@ export default function ClientsPage() {
             <button
               type="button"
               className={`clt-review-pill ${filterReview ? 'selected' : ''}`}
-              onClick={() => setFilterReview(!filterReview)}
+              onClick={() => { setFilterReview(!filterReview); setPage(1); }}
             >
               Needs review <b>{clients.filter(c => c.pendingValidation).length}</b>
             </button>
@@ -358,6 +445,8 @@ export default function ClientsPage() {
                 setFilterType('');
                 setFilterCountry('');
                 setFilterReview(false);
+                setSearchTerm('');
+                setPage(1);
               }}
             >
               Clear
@@ -445,8 +534,9 @@ export default function ClientsPage() {
                     <tr
                       className={`clt-row ${isRowOpen ? 'open' : ''}`}
                       onClick={() => toggleRow(c.id)}
+                      onMouseEnter={() => prefetchClient(c.id)}
                     >
-                      <td className="clt-no">{idx + 1}</td>
+                      <td className="clt-no">{(page - 1) * limit + idx + 1}</td>
                       <td className="clt-name font-bold">
                         <span>{c.displayName || c.name || '–'}</span>
                         {c.pendingValidation && (
@@ -670,6 +760,37 @@ export default function ClientsPage() {
         </table>
       </div>
 
+      {/* 3.1 PAGINATION CONTROLS */}
+      {totalCount > 0 && (
+        <div className="clt-pagination-bar">
+          <div className="clt-pagination-info">
+            Showing <b>{Math.min((page - 1) * limit + 1, totalCount)}</b> to{' '}
+            <b>{Math.min(page * limit, totalCount)}</b> of <b>{totalCount}</b> clients
+          </div>
+          <div className="clt-pagination-actions">
+            <button
+              type="button"
+              className="clt-pagination-btn"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <ChevronLeft size={14} /> Previous
+            </button>
+            <span className="clt-pagination-page">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              type="button"
+              className="clt-pagination-btn"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4. MODALS */}
       {modalMode === 'wizard' && (
         <ClientWizardModal
@@ -694,6 +815,7 @@ export default function ClientsPage() {
       {modalMode === 'detail' && selectedClient && (
         <ClientDetailModal
           clientId={selectedClient.id}
+          preloadedData={prefetchCache.current.get(selectedClient.id)}
           onClose={() => {
             setModalMode(null);
             setSelectedClient(null);

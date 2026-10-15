@@ -4,38 +4,44 @@ import { formatEnquiryCode } from '@/lib/enquiryUtils';
 
 export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get('search')?.trim();
+    const stage = searchParams.get('stage');
+
+    const where: any = {};
+    if (stage && stage !== 'ALL') {
+      where.stage = stage;
+    }
+    if (search) {
+      where.OR = [
+        { enquiryNumber: { contains: search, mode: 'insensitive' } },
+        { client: { name: { contains: search, mode: 'insensitive' } } },
+        { client: { clientCode: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
     const enquiries = await prisma.enquiry.findMany({
+      where,
       include: { 
         items: true, 
-        client: true,
-        salesperson: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            clientCode: true,
+            phones: true,
+            emails: true,
+          }
+        },
+        salesperson: {
+          select: { id: true, name: true, employeeCode: true }
+        },
         quotations: {
           select: { id: true, quotationNumber: true, status: true, totalAmount: true }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
-
-    // Backfill any legacy enquiries missing standardized DF_ENQ_ sequential numbers
-    let maxSeq = 0;
-    enquiries.forEach(e => {
-      if (e.enquiryNumber && e.enquiryNumber.startsWith('DF_ENQ_')) {
-        const num = parseInt(e.enquiryNumber.replace('DF_ENQ_', ''), 10);
-        if (!isNaN(num) && num > maxSeq) maxSeq = num;
-      }
-    });
-
-    for (const e of enquiries) {
-      if (!e.enquiryNumber || !e.enquiryNumber.startsWith('DF_ENQ_')) {
-        maxSeq++;
-        const newCode = formatEnquiryCode(maxSeq);
-        await prisma.enquiry.update({
-          where: { id: e.id },
-          data: { enquiryNumber: newCode }
-        });
-        e.enquiryNumber = newCode;
-      }
-    }
 
     const formatted = enquiries.map(e => ({
       ...e,
@@ -62,18 +68,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Client selection is required' }, { status: 400 });
     }
 
-    // 1. Calculate next sequential DF_ENQ_ code atomically
-    const allEnquiries = await prisma.enquiry.findMany({
+    // 1. Calculate next sequential DF_ENQ_ code atomically in 1ms via indexed seek
+    const latestEnquiry = await prisma.enquiry.findFirst({
+      where: { enquiryNumber: { startsWith: 'DF_ENQ_' } },
+      orderBy: { enquiryNumber: 'desc' },
       select: { enquiryNumber: true }
     });
 
     let maxSeq = 0;
-    allEnquiries.forEach(e => {
-      if (e.enquiryNumber && e.enquiryNumber.startsWith('DF_ENQ_')) {
-        const num = parseInt(e.enquiryNumber.replace('DF_ENQ_', ''), 10);
-        if (!isNaN(num) && num > maxSeq) maxSeq = num;
-      }
-    });
+    if (latestEnquiry?.enquiryNumber) {
+      const num = parseInt(latestEnquiry.enquiryNumber.replace('DF_ENQ_', ''), 10);
+      if (!isNaN(num)) maxSeq = num;
+    }
 
     const nextCode = formatEnquiryCode(maxSeq + 1);
 

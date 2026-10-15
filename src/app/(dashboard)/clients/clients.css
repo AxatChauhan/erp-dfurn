@@ -1722,3 +1722,118 @@
   border-bottom: 1px solid #F3EFE7;
   vertical-align: top;
 }
+
+/* Search Box in Toolbar */
+.clt-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 260px;
+}
+
+.clt-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 6px 12px 6px 34px;
+  background: var(--color-white);
+  border: 1px solid #DCD5C4;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-graphite);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.clt-search-input:focus {
+  border-color: var(--color-orange);
+  box-shadow: 0 0 0 3px rgba(255, 119, 0, 0.12);
+}
+
+.clt-search-input::placeholder {
+  color: #9E988A;
+}
+
+.clt-search-icon {
+  position: absolute;
+  left: 11px;
+  color: #8B8778;
+  pointer-events: none;
+}
+
+.clt-search-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8B8778;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.clt-search-clear:hover {
+  color: var(--color-graphite);
+}
+
+/* Pagination Bar */
+.clt-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--color-white);
+  border: 1px solid #E5DFD3;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #6F6858;
+}
+
+.clt-pagination-info {
+  font-weight: 600;
+}
+
+.clt-pagination-info b {
+  color: var(--color-black);
+}
+
+.clt-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clt-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-white);
+  border: 1px solid #DCD5C4;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-graphite);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clt-pagination-btn:hover:not(:disabled) {
+  border-color: var(--color-orange);
+  color: var(--color-orange);
+}
+
+.clt-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: #E8E3D7;
+}
+
+.clt-pagination-page {
+  font-weight: 700;
+  color: var(--color-black);
+  padding: 0 4px;
+}
+

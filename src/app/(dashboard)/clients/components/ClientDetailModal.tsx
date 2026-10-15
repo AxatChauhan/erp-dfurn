@@ -29,17 +29,19 @@ interface ClientDetailModalProps {
   onClose: () => void;
   onEdit: (client: any) => void;
   onDelete: (clientId: string) => void;
+  preloadedData?: { client: any; activity: any } | null;
 }
 
 export default function ClientDetailModal({
   clientId,
   onClose,
   onEdit,
-  onDelete
+  onDelete,
+  preloadedData
 }: ClientDetailModalProps) {
-  const [client, setClient] = useState<any>(null);
-  const [activity, setActivity] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [client, setClient] = useState<any>(preloadedData?.client || null);
+  const [activity, setActivity] = useState<any>(preloadedData?.activity || null);
+  const [loading, setLoading] = useState(Boolean(!preloadedData?.client || !preloadedData?.activity));
   const [activeTab, setActiveTab] = useState<'orders' | 'quotes' | 'enquiries'>('orders');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [gapsOpen, setGapsOpen] = useState(false);
@@ -47,7 +49,9 @@ export default function ClientDetailModal({
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
+      if (!preloadedData?.client || !preloadedData?.activity) {
+        setLoading(true);
+      }
       try {
         const [cRes, actRes] = await Promise.all([
           fetch(`/api/clients/${clientId}`),
@@ -66,7 +70,7 @@ export default function ClientDetailModal({
       }
     }
     loadData();
-  }, [clientId]);
+  }, [clientId, preloadedData]);
 
   if (loading || !client || !activity) {
     return (
