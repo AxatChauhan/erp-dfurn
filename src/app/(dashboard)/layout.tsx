@@ -1,5 +1,6 @@
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
+import NavigationProgressBar from './NavigationProgressBar';
 import { cookies } from 'next/headers';
 
 export const instant = false;
@@ -11,6 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="h-full flex w-full bg-[#f4f3ed]">
+      <NavigationProgressBar />
       <Sidebar userRole={role} />
 
       {/* MAIN CONTENT AREA */}

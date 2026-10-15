@@ -12,15 +12,23 @@ import {
   Briefcase
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 export default function Sidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
 
-  const isSalesActive = pathname.includes('enquiries') || pathname.includes('quotations') || pathname.includes('clients');
-  const isHrmActive = pathname.includes('/hrm');
+  // Clear optimistic active state whenever the route change commits
+  useEffect(() => {
+    setPendingPath(null);
+  }, [pathname]);
+
+  const activePath = pendingPath || pathname;
+  const isSalesActive = activePath.includes('enquiries') || activePath.includes('quotations') || activePath.includes('clients');
+  const isHrmActive = activePath.includes('/hrm');
 
   // Accordion state: keep active section open by default
   const [openSection, setOpenSection] = useState<'sales' | 'hrm' | null>(() => {
@@ -30,12 +38,18 @@ export default function Sidebar({ userRole }: { userRole: string }) {
 
   // Sync accordion with active page route
   useEffect(() => {
-    if (pathname.includes('/hrm')) {
+    if (activePath.includes('/hrm')) {
       setOpenSection('hrm');
-    } else if (pathname.includes('enquiries') || pathname.includes('quotations') || pathname.includes('clients')) {
+    } else if (activePath.includes('enquiries') || activePath.includes('quotations') || activePath.includes('clients')) {
       setOpenSection('sales');
     }
-  }, [pathname]);
+  }, [activePath]);
+
+  const handleNavClick = (href: string) => {
+    setPendingPath(href);
+    if (href.includes('/hrm')) setOpenSection('hrm');
+    else if (href.includes('enquiries') || href.includes('quotations') || href.includes('clients')) setOpenSection('sales');
+  };
 
   return (
     /* Permanent 72px layout anchor prevents main dashboard content from reflowing/shifting */
@@ -76,12 +90,14 @@ export default function Sidebar({ userRole }: { userRole: string }) {
             href="/clients" 
             prefetch={true}
             title="Dashboard"
+            onMouseEnter={() => router.prefetch('/clients')}
+            onClick={() => handleNavClick('/clients')}
             className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
-              pathname === '/' || pathname === '/dashboard' ? 'text-orange-600' : 'text-gray-700'
+              activePath === '/' || activePath === '/dashboard' || activePath === '/clients' ? 'text-orange-600' : 'text-gray-700'
             }`}
           >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-              pathname === '/' || pathname === '/dashboard' 
+              activePath === '/' || activePath === '/dashboard' || activePath === '/clients' 
                 ? 'bg-orange-500 text-white shadow-xs' 
                 : 'text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-900'
             }`}>
@@ -129,8 +145,11 @@ export default function Sidebar({ userRole }: { userRole: string }) {
               <div className="flex flex-col mt-0.5 mb-1.5 pl-[64px] pr-3 gap-0.5 whitespace-nowrap">
                 <Link 
                   href="/enquiries" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/enquiries')}
+                  onClick={() => handleNavClick('/enquiries')}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    pathname.includes('enquiries') 
+                    activePath.includes('enquiries') 
                       ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold' 
                       : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
@@ -139,8 +158,11 @@ export default function Sidebar({ userRole }: { userRole: string }) {
                 </Link>
                 <Link 
                   href="/quotations" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/quotations')}
+                  onClick={() => handleNavClick('/quotations')}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    pathname.includes('quotations') 
+                    activePath.includes('quotations') 
                       ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold' 
                       : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
@@ -150,8 +172,10 @@ export default function Sidebar({ userRole }: { userRole: string }) {
                 <Link 
                   href="/clients" 
                   prefetch={true}
+                  onMouseEnter={() => router.prefetch('/clients')}
+                  onClick={() => handleNavClick('/clients')}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    pathname.includes('clients') 
+                    activePath.includes('clients') 
                       ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold' 
                       : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
@@ -197,8 +221,11 @@ export default function Sidebar({ userRole }: { userRole: string }) {
               <div className="flex flex-col mt-0.5 mb-1.5 pl-[64px] pr-3 gap-0.5 whitespace-nowrap">
                 <Link 
                   href="/hrm/employees" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/hrm/employees')}
+                  onClick={() => handleNavClick('/hrm/employees')}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    pathname.includes('/hrm/employees') 
+                    activePath.includes('/hrm/employees') 
                       ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
                       : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
@@ -207,8 +234,11 @@ export default function Sidebar({ userRole }: { userRole: string }) {
                 </Link>
                 <Link 
                   href="/hrm/attendance" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/hrm/attendance')}
+                  onClick={() => handleNavClick('/hrm/attendance')}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    pathname === '/hrm/attendance'
+                    activePath === '/hrm/attendance'
                       ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
                       : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
@@ -217,8 +247,11 @@ export default function Sidebar({ userRole }: { userRole: string }) {
                 </Link>
                 <Link 
                   href="/hrm/attendance-register" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/hrm/attendance-register')}
+                  onClick={() => handleNavClick('/hrm/attendance-register')}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    pathname.includes('/hrm/attendance-register') 
+                    activePath.includes('/hrm/attendance-register') 
                       ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
                       : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
@@ -281,13 +314,16 @@ export default function Sidebar({ userRole }: { userRole: string }) {
           {userRole === 'SUPER_ADMIN' && (
             <Link 
               href="/users" 
+              prefetch={true}
+              onMouseEnter={() => router.prefetch('/users')}
+              onClick={() => handleNavClick('/users')}
               title="Admin"
               className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
-                pathname.includes('/users') ? 'text-orange-600' : 'text-gray-700'
+                activePath.includes('/users') ? 'text-orange-600' : 'text-gray-700'
               }`}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                pathname.includes('/users') 
+                activePath.includes('/users') 
                   ? 'bg-orange-500 text-white shadow-xs' 
                   : 'text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-900'
               }`}>
