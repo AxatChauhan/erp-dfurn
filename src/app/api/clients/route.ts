@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_cache, revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { formatPhone, normalizePhone, isIndia, GSTIN_REGEX, EMAIL_REGEX, Address } from '@/lib/phone';
 import { findCountry, DEFAULT_COUNTRY_ISO2 } from '@/lib/countries';
@@ -68,28 +69,34 @@ async function getOrComputeKpis() {
     return cachedKpis;
   }
 
-  const [total, business, individual, withGstin, topSourceGroup] = await Promise.all([
-    prisma.client.count({ where: { isActive: true } }),
-    prisma.client.count({ where: { isActive: true, clientType: 'Business' } }),
-    prisma.client.count({ where: { isActive: true, clientType: 'Individual' } }),
-    prisma.client.count({
-      where: {
-        isActive: true,
-        taxId: { not: null },
-        NOT: { taxId: '' },
-      },
-    }),
-    prisma.client.groupBy({
-      by: ['sourceCategoryId'],
-      where: { isActive: true, sourceCategoryId: { not: null } },
-      _count: { sourceCategoryId: true },
-      orderBy: { _count: { sourceCategoryId: 'desc' } },
-      take: 1,
-    }),
+  // Single consolidated SQL aggregate query + top source in parallel (< 15ms)
+  const [kpiRows, topSourceRows] = await Promise.all([
+    prisma.$queryRawUnsafe<Array<{ total: number; business: number; individual: number; withGstin: number }>>(`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE "clientType" = 'Business')::int AS business,
+        COUNT(*) FILTER (WHERE "clientType" = 'Individual')::int AS individual,
+        COUNT(*) FILTER (WHERE "taxId" IS NOT NULL AND "taxId" != '')::int AS "withGstin"
+      FROM "Client"
+      WHERE "isActive" = true;
+    `),
+    prisma.$queryRawUnsafe<Array<{ sourceCategoryId: string | null; count: number }>>(`
+      SELECT "sourceCategoryId", COUNT(*)::int AS count
+      FROM "Client"
+      WHERE "isActive" = true AND "sourceCategoryId" IS NOT NULL
+      GROUP BY "sourceCategoryId"
+      ORDER BY count DESC
+      LIMIT 1;
+    `),
   ]);
 
-  const topSourceCategoryId = topSourceGroup.length ? topSourceGroup[0].sourceCategoryId : null;
-  const topSourceCount = topSourceGroup.length ? topSourceGroup[0]._count.sourceCategoryId : 0;
+  const kpiRow = kpiRows[0] || { total: 0, business: 0, individual: 0, withGstin: 0 };
+  const total = Number(kpiRow.total) || 0;
+  const business = Number(kpiRow.business) || 0;
+  const individual = Number(kpiRow.individual) || 0;
+  const withGstin = Number(kpiRow.withGstin) || 0;
+  const topSourceCategoryId = topSourceRows.length ? topSourceRows[0].sourceCategoryId : null;
+  const topSourceCount = topSourceRows.length ? Number(topSourceRows[0].count) : 0;
 
   cachedKpis = {
     total,
@@ -117,7 +124,7 @@ export interface FetchClientsParams {
   limit?: number | string | null;
 }
 
-export async function fetchClientsData(params: FetchClientsParams = {}) {
+export async function fetchClientsDataDirect(params: FetchClientsParams = {}) {
   const filterType = params.type;
   const filterCountry = params.country;
   const filterReview = params.needsReview === true;
@@ -270,6 +277,42 @@ export async function fetchClientsData(params: FetchClientsParams = {}) {
 }
 
 // -------------------------------------------------------------
+// NEXT.JS DATA CACHE FOR DEFAULT PAGE 1 (< 15ms CACHE HITS)
+// -------------------------------------------------------------
+const getCachedDefaultClients = unstable_cache(
+  async () => {
+    return fetchClientsDataDirect({
+      page: 1,
+      limit: 50,
+      type: null,
+      country: null,
+      needsReview: false,
+      search: null,
+    });
+  },
+  ['default-clients-page1-v1'],
+  {
+    tags: ['clients'],
+    revalidate: 60,
+  }
+);
+
+export async function fetchClientsData(params: FetchClientsParams = {}) {
+  const isDefault =
+    (!params.type || params.type === 'ALL') &&
+    (!params.country || params.country === 'ALL') &&
+    !params.needsReview &&
+    (!params.search || params.search.trim() === '') &&
+    (!params.page || String(params.page) === '1') &&
+    (!params.limit || String(params.limit) === '50');
+
+  if (isDefault) {
+    return getCachedDefaultClients();
+  }
+  return fetchClientsDataDirect(params);
+}
+
+// -------------------------------------------------------------
 // GET: HIGH-THROUGHPUT PAGINATED CLIENT LISTING WITH SQL SEARCH
 // -------------------------------------------------------------
 export async function GET(req: NextRequest) {
@@ -415,8 +458,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Invalidate KPI micro-cache so counts update immediately
+    // Invalidate KPI micro-cache and Next.js edge cache so counts and list update immediately
     invalidateClientKpiCache();
+    try {
+      revalidateTag('clients', { expire: 0 });
+    } catch {}
 
     return NextResponse.json(newClient, { status: 201 });
   } catch (error: any) {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { invalidateClientKpiCache } from '@/app/api/clients/route';
 import { normalizePhone, formatPhone, GSTIN_REGEX, EMAIL_REGEX } from '@/lib/phone';
 import { findCountry, DEFAULT_COUNTRY_ISO2 } from '@/lib/countries';
 
@@ -224,6 +226,11 @@ export async function POST(req: NextRequest) {
 
       imported++;
     }
+
+    invalidateClientKpiCache();
+    try {
+      revalidateTag('clients', { expire: 0 });
+    } catch {}
 
     return NextResponse.json({
       result: {

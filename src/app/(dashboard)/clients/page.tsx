@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import ClientsClient from './ClientsClient';
+import ClientsLoading from './loading';
 import { fetchClientsData } from '@/app/api/clients/route';
 
-export default async function ClientsPage({
+async function ClientsDataLoader({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -25,5 +27,17 @@ export default async function ClientsPage({
       initialTotal={data.total}
       initialTotalPages={data.totalPages}
     />
+  );
+}
+
+export default function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
+  return (
+    <Suspense fallback={<ClientsLoading />}>
+      <ClientsDataLoader searchParams={searchParams} />
+    </Suspense>
   );
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { invalidateClientKpiCache } from '@/app/api/clients/route';
 import { formatPhone, normalizePhone, GSTIN_REGEX, EMAIL_REGEX, Address } from '@/lib/phone';
 import { findCountry, DEFAULT_COUNTRY_ISO2 } from '@/lib/countries';
 
@@ -180,6 +182,11 @@ async function handleUpdate(
       }
     });
 
+    invalidateClientKpiCache();
+    try {
+      revalidateTag('clients', { expire: 0 });
+    } catch {}
+
     return NextResponse.json(updated);
   } catch (error: any) {
     console.error('Error updating client:', error);
@@ -216,6 +223,12 @@ export async function DELETE(
     }
 
     await prisma.client.delete({ where: { id } });
+
+    invalidateClientKpiCache();
+    try {
+      revalidateTag('clients', { expire: 0 });
+    } catch {}
+
     return NextResponse.json({ success: true, message: 'Client deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting client:', error);
