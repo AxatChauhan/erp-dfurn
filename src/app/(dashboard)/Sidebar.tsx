@@ -74,6 +74,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
           {/* Dashboard */}
           <Link 
             href="/clients" 
+            prefetch={true}
             title="Dashboard"
             className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
               pathname === '/' || pathname === '/dashboard' ? 'text-orange-600' : 'text-gray-700'
@@ -148,6 +149,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
                 </Link>
                 <Link 
                   href="/clients" 
+                  prefetch={true}
                   className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
                     pathname.includes('clients') 
                       ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold' 

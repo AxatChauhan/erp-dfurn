@@ -62,7 +62,7 @@ export function invalidateClientKpiCache() {
   kpiCacheTimestamp = 0;
 }
 
-async function getOrComputeKpis(sourceCategories: Array<{ id: string; name: string }>) {
+async function getOrComputeKpis() {
   const now = Date.now();
   if (cachedKpis && now - kpiCacheTimestamp < KPI_CACHE_TTL) {
     return cachedKpis;
@@ -88,14 +88,8 @@ async function getOrComputeKpis(sourceCategories: Array<{ id: string; name: stri
     }),
   ]);
 
-  let topSourceName = '–';
-  let topSourceCount = 0;
-  if (topSourceGroup.length && topSourceGroup[0].sourceCategoryId) {
-    const topCatId = topSourceGroup[0].sourceCategoryId;
-    topSourceCount = topSourceGroup[0]._count.sourceCategoryId;
-    const cat = sourceCategories.find((s) => s.id === topCatId);
-    if (cat) topSourceName = cat.name;
-  }
+  const topSourceCategoryId = topSourceGroup.length ? topSourceGroup[0].sourceCategoryId : null;
+  const topSourceCount = topSourceGroup.length ? topSourceGroup[0]._count.sourceCategoryId : 0;
 
   cachedKpis = {
     total,
@@ -103,11 +97,176 @@ async function getOrComputeKpis(sourceCategories: Array<{ id: string; name: stri
     individual,
     withGstin,
     gstinPct: total ? Math.round((withGstin / total) * 100) : 0,
-    topSourceName,
+    topSourceCategoryId,
     topSourceCount,
+    topSourceName: '–',
   };
   kpiCacheTimestamp = now;
   return cachedKpis;
+}
+
+// -------------------------------------------------------------
+// SHARED DATA FETCHING HELPER (Callable by Server Component & API)
+// -------------------------------------------------------------
+export interface FetchClientsParams {
+  type?: string | null;
+  country?: string | null;
+  needsReview?: boolean;
+  search?: string | null;
+  page?: number | string | null;
+  limit?: number | string | null;
+}
+
+export async function fetchClientsData(params: FetchClientsParams = {}) {
+  const filterType = params.type;
+  const filterCountry = params.country;
+  const filterReview = params.needsReview === true;
+  const search = params.search?.trim();
+  const pageParam = params.page;
+  const limitParam = params.limit;
+
+  // Build database WHERE clause with indexed columns
+  const where: any = { isActive: true };
+
+  if (filterType && filterType !== 'ALL' && filterType !== '') {
+    where.clientType = filterType === 'Individual' ? 'Individual' : 'Business';
+  }
+
+  if (filterCountry && filterCountry !== 'ALL' && filterCountry !== '') {
+    where.country = { equals: filterCountry, mode: 'insensitive' };
+  }
+
+  if (filterReview) {
+    where.pendingValidation = true;
+  }
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { companyName: { contains: search, mode: 'insensitive' } },
+      { clientCode: { contains: search, mode: 'insensitive' } },
+      { contactPerson: { contains: search, mode: 'insensitive' } },
+      { taxId: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  // Pagination config
+  const page = Math.max(1, typeof pageParam === 'number' ? pageParam : parseInt(pageParam || '1', 10));
+  const limit = limitParam === 'all'
+    ? 1000
+    : Math.min(200, Math.max(1, typeof limitParam === 'number' ? limitParam : parseInt(limitParam || '50', 10)));
+  const skip = (page - 1) * limit;
+
+  // Execute all 4 database queries concurrently in a SINGLE roundtrip (< 35ms)
+  const [sourceCategories, rawKpis, totalFiltered, rawClients] = await Promise.all([
+    prisma.sourceCategory.findMany({
+      orderBy: { name: 'asc' },
+    }),
+    getOrComputeKpis(),
+    prisma.client.count({ where }),
+    prisma.client.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        _count: {
+          select: { jobOrders: true, quotations: true, enquiries: true },
+        },
+        jobOrders: {
+          where: { status: { not: 'Cancelled' } },
+          select: { grandTotal: true, exchangeRate: true, orderDate: true },
+        },
+      },
+    }),
+  ]);
+
+  // Resolve topSourceName from concurrent sourceCategories
+  let topSourceName = '–';
+  if (rawKpis.topSourceCategoryId) {
+    const cat = sourceCategories.find((s) => s.id === rawKpis.topSourceCategoryId);
+    if (cat) topSourceName = cat.name;
+  } else if (rawKpis.topSourceName) {
+    topSourceName = rawKpis.topSourceName;
+  }
+
+  const kpis = {
+    ...rawKpis,
+    topSourceName,
+  };
+
+  // Map enriched clients (preserving 100% of existing UI data contract)
+  const enrichedClients = rawClients.map((c) => {
+    const rawPhones = Array.isArray(c.phones) ? (c.phones as string[]) : [];
+    const storedPhoneDetails = Array.isArray(c.phoneDetails) ? (c.phoneDetails as any[]) : [];
+
+    const phoneDetails = rawPhones.map((p, idx) => {
+      if (storedPhoneDetails[idx]) return storedPhoneDetails[idx];
+      return formatPhone(p, c.countryIso2 || 'IN');
+    });
+
+    const addresses = Array.isArray(c.addresses) ? (c.addresses as unknown as Address[]) : [];
+    const emails = Array.isArray(c.emails) ? (c.emails as string[]) : [];
+    const issues = Array.isArray(c.validationIssues) ? (c.validationIssues as string[]) : [];
+
+    // Calculate order rollups for the page slice
+    const totalJobOrders = c.jobOrders.length;
+    const totalOrderValue = Math.round(
+      c.jobOrders.reduce((sum, j) => sum + (j.grandTotal || 0) * (j.exchangeRate || 1), 0)
+    );
+
+    const dates = c.jobOrders.map((j) => j.orderDate).filter(Boolean).sort();
+    const lastOrderDate = dates.length ? dates[dates.length - 1].toISOString() : null;
+
+    const clientType: 'Business' | 'Individual' = c.clientType === 'Individual' ? 'Individual' : 'Business';
+    const displayName = clientType === 'Business' ? c.companyName || c.name : c.name;
+
+    return {
+      id: c.id,
+      code: c.clientCode || '',
+      clientCode: c.clientCode || '',
+      type: clientType,
+      clientType,
+      businessMode: c.businessMode || defaultMode(clientType),
+      displayName,
+      name: displayName,
+      companyName: c.companyName || (clientType === 'Business' ? c.name : ''),
+      contactPerson: c.contactPerson || '',
+      phones: rawPhones,
+      phoneDetails,
+      emails,
+      addresses,
+      countryIso2: c.countryIso2 || 'IN',
+      country: c.country || 'India',
+      sourceCategoryId: c.sourceCategoryId || null,
+      sourceCategory: c.sourceCategory || '',
+      sourceName: c.sourceName || '',
+      gstin: c.taxId || '',
+      taxId: c.taxId || '',
+      pendingValidation: c.pendingValidation || false,
+      validationIssues: issues,
+      totalJobOrders,
+      totalOrderValue,
+      lastOrderDate,
+      enquiryCount: c._count.enquiries,
+      quoteCount: c._count.quotations,
+      jobOrderCount: c._count.jobOrders,
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString(),
+    };
+  });
+
+  return {
+    clients: enrichedClients,
+    allClients: enrichedClients,
+    total: totalFiltered,
+    page,
+    limit,
+    totalPages: Math.ceil(totalFiltered / limit) || 1,
+    hasMore: page * limit < totalFiltered,
+    sourceCategories,
+    kpis,
+  };
 }
 
 // -------------------------------------------------------------
@@ -116,143 +275,16 @@ async function getOrComputeKpis(sourceCategories: Array<{ id: string; name: stri
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const filterType = searchParams.get('type');
-    const filterCountry = searchParams.get('country');
-    const filterReview = searchParams.get('needsReview') === 'true';
-    const search = searchParams.get('search')?.trim();
-    const pageParam = searchParams.get('page');
-    const limitParam = searchParams.get('limit');
-
-    // Build database WHERE clause with indexed columns
-    const where: any = { isActive: true };
-
-    if (filterType && filterType !== 'ALL' && filterType !== '') {
-      where.clientType = filterType === 'Individual' ? 'Individual' : 'Business';
-    }
-
-    if (filterCountry && filterCountry !== 'ALL' && filterCountry !== '') {
-      where.country = { equals: filterCountry, mode: 'insensitive' };
-    }
-
-    if (filterReview) {
-      where.pendingValidation = true;
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { companyName: { contains: search, mode: 'insensitive' } },
-        { clientCode: { contains: search, mode: 'insensitive' } },
-        { contactPerson: { contains: search, mode: 'insensitive' } },
-        { taxId: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    // Source categories (cached via findMany)
-    const sourceCategories = await prisma.sourceCategory.findMany({
-      orderBy: { name: 'asc' },
-    });
-    const kpis = await getOrComputeKpis(sourceCategories);
-
-    // Pagination config
-    const page = Math.max(1, parseInt(pageParam || '1', 10));
-    const limit = limitParam === 'all'
-      ? 1000
-      : Math.min(200, Math.max(1, parseInt(limitParam || '50', 10)));
-    const skip = (page - 1) * limit;
-
-    // Execute paginated queries concurrently in < 20ms
-    const [totalFiltered, rawClients] = await Promise.all([
-      prisma.client.count({ where }),
-      prisma.client.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-        include: {
-          _count: {
-            select: { jobOrders: true, quotations: true, enquiries: true },
-          },
-          jobOrders: {
-            select: { grandTotal: true, exchangeRate: true, status: true, orderDate: true },
-          },
-        },
-      }),
-    ]);
-
-    // Map enriched clients (preserving 100% of existing UI data contract)
-    const enrichedClients = rawClients.map((c) => {
-      const rawPhones = Array.isArray(c.phones) ? (c.phones as string[]) : [];
-      const storedPhoneDetails = Array.isArray(c.phoneDetails) ? (c.phoneDetails as any[]) : [];
-
-      const phoneDetails = rawPhones.map((p, idx) => {
-        if (storedPhoneDetails[idx]) return storedPhoneDetails[idx];
-        return formatPhone(p, c.countryIso2 || 'IN');
-      });
-
-      const addresses = Array.isArray(c.addresses) ? (c.addresses as unknown as Address[]) : [];
-      const emails = Array.isArray(c.emails) ? (c.emails as string[]) : [];
-      const issues = Array.isArray(c.validationIssues) ? (c.validationIssues as string[]) : [];
-
-      // Calculate order rollups for the page slice
-      const liveOrders = c.jobOrders.filter((j) => j.status !== 'Cancelled');
-      const totalJobOrders = liveOrders.length;
-      const totalOrderValue = Math.round(
-        liveOrders.reduce((sum, j) => sum + (j.grandTotal || 0) * (j.exchangeRate || 1), 0)
-      );
-
-      const dates = liveOrders.map((j) => j.orderDate).filter(Boolean).sort();
-      const lastOrderDate = dates.length ? dates[dates.length - 1] : null;
-
-      const clientType = c.clientType === 'Individual' ? 'Individual' : 'Business';
-      const displayName = clientType === 'Business' ? c.companyName || c.name : c.name;
-
-      return {
-        id: c.id,
-        code: c.clientCode || '',
-        clientCode: c.clientCode || '',
-        type: clientType,
-        clientType,
-        businessMode: c.businessMode || defaultMode(clientType),
-        displayName,
-        name: displayName,
-        companyName: c.companyName || (clientType === 'Business' ? c.name : ''),
-        contactPerson: c.contactPerson || '',
-        phones: rawPhones,
-        phoneDetails,
-        emails,
-        addresses,
-        countryIso2: c.countryIso2 || 'IN',
-        country: c.country || 'India',
-        sourceCategoryId: c.sourceCategoryId || null,
-        sourceCategory: c.sourceCategory || '',
-        sourceName: c.sourceName || '',
-        gstin: c.taxId || '',
-        taxId: c.taxId || '',
-        pendingValidation: c.pendingValidation || false,
-        validationIssues: issues,
-        totalJobOrders,
-        totalOrderValue,
-        lastOrderDate,
-        enquiryCount: c._count.enquiries,
-        quoteCount: c._count.quotations,
-        jobOrderCount: c._count.jobOrders,
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString(),
-      };
+    const data = await fetchClientsData({
+      type: searchParams.get('type'),
+      country: searchParams.get('country'),
+      needsReview: searchParams.get('needsReview') === 'true',
+      search: searchParams.get('search'),
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
     });
 
-    return NextResponse.json({
-      clients: enrichedClients,
-      allClients: enrichedClients,
-      total: totalFiltered,
-      page,
-      limit,
-      totalPages: Math.ceil(totalFiltered / limit) || 1,
-      hasMore: page * limit < totalFiltered,
-      sourceCategories,
-      kpis,
-    });
+    return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error fetching clients:', error);
     return NextResponse.json(
