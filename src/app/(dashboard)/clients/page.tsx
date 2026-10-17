@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { connection } from 'next/server';
 import ClientsClient from './ClientsClient';
 import ClientsLoading from './loading';
 import { fetchClientsData } from '@/app/api/clients/route';
@@ -8,6 +9,7 @@ async function ClientsDataLoader({
 }: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
+  await connection();
   const params = await searchParams;
 
   const data = await fetchClientsData({

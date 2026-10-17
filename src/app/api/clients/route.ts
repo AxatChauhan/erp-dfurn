@@ -22,33 +22,32 @@ function modeOf(mode?: string | null, type?: string | null): BusinessMode {
  * High-Scale Atomic Client Code Generator (< 2ms)
  * Uses indexed boundary seeks instead of scanning all rows in the database.
  */
-async function generateNextClientCode(mode: BusinessMode): Promise<string> {
-  const [latestNew, latestOld] = await Promise.all([
-    prisma.client.findFirst({
-      where: { clientCode: { startsWith: 'DF/C/' } },
-      orderBy: { clientCode: 'desc' },
-      select: { clientCode: true },
-    }),
-    prisma.client.findFirst({
-      where: { clientCode: { startsWith: 'DF_CL_' } },
-      orderBy: { clientCode: 'desc' },
-      select: { clientCode: true },
-    }),
-  ]);
+export async function generateNextClientCode(mode: BusinessMode): Promise<string> {
+  const clients = await prisma.client.findMany({
+    select: { clientCode: true },
+  });
 
   let maxSeq = 0;
-  if (latestNew?.clientCode) {
-    const parts = latestNew.clientCode.split('/');
-    const num = parseInt(parts[parts.length - 1], 10);
-    if (!isNaN(num) && num > maxSeq) maxSeq = num;
-  }
-  if (latestOld?.clientCode) {
-    const num = parseInt(latestOld.clientCode.replace('DF_CL_', ''), 10);
-    if (!isNaN(num) && num > maxSeq) maxSeq = num;
+  for (const c of clients) {
+    if (!c.clientCode) continue;
+    const match = c.clientCode.match(/(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxSeq) {
+        maxSeq = num;
+      }
+    }
   }
 
-  const nextSeq = maxSeq + 1;
-  return `DF/C/${mode}/${String(nextSeq).padStart(5, '0')}`;
+  let nextSeq = maxSeq + 1;
+  const existingCodes = new Set(clients.map(c => c.clientCode).filter(Boolean));
+  while (true) {
+    const candidate = `DF/C/${mode}/${String(nextSeq).padStart(5, '0')}`;
+    if (!existingCodes.has(candidate)) {
+      return candidate;
+    }
+    nextSeq++;
+  }
 }
 
 // -------------------------------------------------------------

@@ -1,0 +1,1039 @@
+/* Enquiries Module Stylesheet (Exact 1:1 Parity with Sir's Reference Implementation) */
+
+/* Global Dialog & Overlay Backdrop Blur */
+.detail-overlay,
+.wizard-overlay,
+.ui-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  transition: padding-right 0.22s ease;
+}
+
+.detail-overlay.cd-with-drawer {
+  padding-right: 404px;
+}
+
+/* ==========================================================================
+   1. TABLE & LIST STYLES (MATCHING CLIENTS MODULE PATTERN)
+   ========================================================================== */
+
+.clt-fixed col.we-no { width: 48px; }
+.clt-fixed col.we-client { width: 29%; }
+.clt-fixed col.we-cat { width: 17%; }
+.clt-fixed col.we-status { width: 17%; }
+.clt-fixed col.we-sp { width: 16%; }
+.clt-fixed col.we-date { width: 12%; }
+.clt-fixed col.we-chev { width: 56px; }
+
+.enq-code-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #A39B8B;
+  margin-top: 2px;
+}
+
+/* Status Indicator Dot & Label (.cd-st) */
+.cd-st {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cd-st i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cd-st-neutral { background: var(--color-moonshell, #F4F1EC); color: #6F6858; }
+.cd-st-neutral i { background: #8B8778; }
+
+.cd-st-active { background: rgba(255, 119, 0, 0.12); color: var(--color-orange, #FF7700); }
+.cd-st-active i { background: var(--color-orange, #FF7700); }
+
+.cd-st-done { background: rgba(39, 174, 96, 0.12); color: var(--color-success, #27AE60); }
+.cd-st-done i { background: var(--color-success, #27AE60); }
+
+.cd-st-bad { background: rgba(192, 57, 43, 0.1); color: var(--color-error, #C0392B); }
+.cd-st-bad i { background: var(--color-error, #C0392B); }
+
+/* Period Picker Popover */
+.enq-period-pop {
+  width: 360px;
+  padding: 14px 16px 16px;
+  background: #FFFFFF;
+  border: 1px solid #E5DFD3;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+}
+
+.enq-pp-group {
+  margin-bottom: 14px;
+}
+
+.enq-pp-group:last-child {
+  margin-bottom: 0;
+}
+
+.enq-pp-group .pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.enq-period-pop.dated .enq-pp-group:not(:last-child) {
+  opacity: 0.45;
+}
+
+.enq-pp-date {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.enq-pp-date .field-input {
+  height: 38px;
+  width: 170px;
+}
+
+/* ==========================================================================
+   2. DETAIL MODAL (3-PANE LAYOUT: RAIL - MAIN - JOURNEY)
+   ========================================================================== */
+
+.eqd-modal {
+  width: 100%;
+  max-width: 1400px;
+  max-height: 92vh;
+  background: var(--color-white, #FFFFFF);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+.eqd-split {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 320px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.eqd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  border: 1px solid #E5DFD3;
+  border-radius: 10px;
+  background: var(--color-white, #FFFFFF);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-graphite, #333333);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.eqd-back:hover {
+  background: var(--color-moonshell, #F4F1EC);
+}
+
+.eqd-status {
+  margin-right: 4px;
+}
+
+/* Gaps / To Complete */
+.cd-gaps-wrap {
+  position: relative;
+}
+
+.cd-gaps-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #E5DFD3;
+  border-radius: 10px;
+  background: #FFF9F2;
+  color: #B85C00;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cd-gaps-btn.on {
+  background: #FFE8D1;
+  border-color: #FFB366;
+}
+
+.cd-gaps-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #FFFFFF;
+  border: 1px solid #E5DFD3;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  padding: 12px;
+  z-index: 50;
+}
+
+.cd-gaps-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8B8778;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.eqd-gaps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.eqd-gap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-graphite, #333333);
+}
+
+.eqd-gap:hover {
+  background: var(--color-moonshell, #F4F1EC);
+}
+
+/* More Menu */
+.eqd-menu-wrap {
+  position: relative;
+}
+
+.eqd-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 270px;
+  z-index: 50;
+  background: var(--color-white, #FFFFFF);
+  border: 1px solid #E5DFD3;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  padding: 6px;
+}
+
+.eqd-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-graphite, #333333);
+}
+
+.eqd-menu-item:hover {
+  background: var(--color-moonshell, #F4F1EC);
+}
+
+.eqd-menu-item small {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #A39B8B;
+}
+
+.eqd-menu-item.danger {
+  color: var(--color-error, #C0392B);
+}
+
+.eqd-menu-item.locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.eqd-menu-item.locked:hover {
+  background: none;
+}
+
+/* Tabs Header in Middle Pane */
+.eqd-tabs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #EEE9DF;
+  background: var(--color-white, #FFFFFF);
+}
+
+.eqd-tabs-l {
+  display: flex;
+  gap: 6px;
+}
+
+.eqd-tabs-r {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.eqd-tabs-r .clt-quiet-btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  background: #F4F1EC;
+  border: 1px solid #E5DFD3;
+  color: #333333;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eqd-tabs-r .clt-quiet-btn:hover {
+  background: #ECE6DC;
+}
+
+/* Brief & Line Items in Middle Pane */
+.eqd-brief {
+  min-height: 88px;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+  padding: 10px 14px;
+  border: 1px solid #E5DFD3;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.eqd-brief-via {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #A39B8B;
+}
+
+.eqd-sec {
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.eqd-line {
+  padding: 14px 0;
+  border-bottom: 1px solid #F0EBE0;
+}
+
+.eqd-line-main {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.eqd-line-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--color-moonshell, #F4F1EC);
+  border: 1px solid #E5DFD3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.eqd-line-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.eqd-line-name {
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-black, #000000);
+}
+
+.eqd-line-name .cd-faint {
+  margin-left: 8px;
+  font-size: 11.5px;
+  color: #A39B8B;
+}
+
+.eqd-line-qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8B8778;
+}
+
+.eqd-line-qty .field-input {
+  width: 74px;
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #E5DFD3;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.eqd-line-comment {
+  margin-top: 10px;
+  height: 38px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid #E5DFD3;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.eqd-opp {
+  margin-top: 18px;
+  max-width: 280px;
+}
+
+.eqd-opp-hint {
+  font-size: 12px;
+  color: #A39B8B;
+  margin-top: 4px;
+}
+
+.eqd-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.eqd-need {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: #8B8778;
+}
+
+.eqd-fact-select {
+  height: 34px;
+  padding: 4px 8px;
+  font-size: 13px;
+  max-width: 210px;
+  border: 1px solid #E5DFD3;
+  border-radius: 6px;
+}
+
+/* ==========================================================================
+   3. RIGHT COLUMN: 8-STEP PIPELINE & AUDIT HISTORY
+   ========================================================================== */
+
+.eqd-jcol {
+  overflow-y: auto;
+  padding: 22px 22px 28px;
+  background: #FBFAF7;
+  border-left: 1px solid #EEE9DF;
+}
+
+.eqd-lost {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #FBEAE7;
+  color: var(--color-error, #C0392B);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.eqd-lost-note {
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.eqj {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.eqj-step {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 18px;
+  min-width: 0;
+}
+
+.eqj-step:last-child {
+  padding-bottom: 0;
+}
+
+.eqj-step::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 24px;
+  bottom: 2px;
+  width: 2px;
+  background: #E5DFD3;
+}
+
+.eqj-step:last-child::after {
+  display: none;
+}
+
+.eqj-line-done::after {
+  background: var(--color-success, #27AE60);
+}
+
+.eqj-dot {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #D6CFC0;
+  background: var(--color-white, #FFFFFF);
+  position: relative;
+  z-index: 1;
+}
+
+.eqj-body {
+  min-width: 0;
+  padding-top: 1px;
+  display: flex;
+  flex-direction: column;
+}
+
+.eqj-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-graphite, #333333);
+}
+
+.eqj-sub {
+  font-size: 12px;
+  color: #6F6858;
+  margin-top: 1px;
+}
+
+.eqj-meta {
+  font-size: 11.5px;
+  color: #A39B8B;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Pipeline States */
+.eqj-done .eqj-dot {
+  background: var(--color-success, #27AE60);
+  border-color: var(--color-success, #27AE60);
+  color: #FFFFFF;
+}
+
+.eqj-active .eqj-dot {
+  border-color: var(--color-orange, #FF7700);
+  box-shadow: inset 0 0 0 3px #FFFFFF, inset 0 0 0 9px var(--color-orange, #FF7700);
+}
+
+.eqj-active .eqj-sub {
+  color: var(--color-orange, #FF7700);
+  font-weight: 600;
+}
+
+.eqj-bad .eqj-dot {
+  border-color: var(--color-error, #C0392B);
+  background: #FBEAE7;
+  color: var(--color-error, #C0392B);
+}
+
+.eqj-bad .eqj-sub {
+  color: var(--color-error, #C0392B);
+  font-weight: 600;
+}
+
+.eqj-off .eqj-dot {
+  background: #F3EFE7;
+}
+
+.eqj-off .eqj-label {
+  color: #A39B8B;
+  text-decoration: line-through;
+}
+
+.eqj-todo .eqj-label {
+  color: #A39B8B;
+  font-weight: 600;
+}
+
+.eqd-journey-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed #E5DFD3;
+}
+
+.eqj-hist-h {
+  margin-top: 22px;
+}
+
+.eqj-hist {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.eqj-hist li {
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+  color: var(--color-graphite, #333333);
+}
+
+.eqj-hist b {
+  font-weight: 600;
+}
+
+.eqj-hist span {
+  font-size: 11.5px;
+  color: #A39B8B;
+}
+
+/* ==========================================================================
+   4. MARK AS LOST DIALOG
+   ========================================================================== */
+
+.eqd-dlg {
+  width: min(480px, 100%);
+  background: var(--color-white, #FFFFFF);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.eqd-dlg-head {
+  padding: 20px 24px 6px;
+}
+
+.eqd-dlg-head h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-black, #000000);
+}
+
+.eqd-dlg-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #8B8778;
+  line-height: 1.45;
+}
+
+.eqd-dlg-body {
+  padding: 14px 24px 6px;
+}
+
+.eqd-dlg-note {
+  margin-top: 6px;
+  min-height: 76px;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border: 1px solid #E5DFD3;
+  border-radius: 6px;
+}
+
+.eqd-dlg-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 24px 20px;
+}
+
+/* ==========================================================================
+   5. QUICK ENQUIRY WIZARD MODAL (.qe-*)
+   ========================================================================== */
+
+.qe-stepper {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 16px 24px 18px;
+  border-bottom: 1px solid #E5DFD3;
+}
+
+.qe-connector-track {
+  position: absolute;
+  top: 28px;
+  left: 16.6%;
+  right: 16.6%;
+  height: 1.5px;
+  background: #DCD5C8;
+  z-index: 0;
+}
+
+.qe-connector-fill {
+  position: absolute;
+  top: 28px;
+  left: 16.6%;
+  height: 1.5px;
+  background: var(--color-success, #27AE60);
+  z-index: 1;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.qe-step {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.qe-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-white, #FFFFFF);
+  border: 1.5px solid #C9C2B0;
+  color: #A79F8F;
+  transition: all 0.35s ease;
+}
+
+.qe-dot.current {
+  background: var(--color-black, #000000);
+  border-color: var(--color-black, #000000);
+  color: var(--color-white, #FFFFFF);
+}
+
+.qe-dot.done {
+  background: var(--color-success, #27AE60);
+  border-color: var(--color-success, #27AE60);
+  color: var(--color-white, #FFFFFF);
+}
+
+.qe-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #A79F8F;
+}
+
+.qe-step.active .qe-step-label,
+.qe-step.doneLbl .qe-step-label {
+  color: var(--color-graphite, #333333);
+}
+
+.qe-slider-wrap {
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+  position: relative;
+}
+
+.qe-slides {
+  width: 100%;
+}
+
+.qe-slide {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.qe-step-animated {
+  animation: qeStepIn 0.28s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes qeStepIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Client Combobox */
+.qe-combo {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.qe-client-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--color-white, #FFFFFF);
+  border: 1px solid #E5DFD3;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.qe-new-client-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  color: var(--color-orange, #FF7700);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  border-bottom: 1px solid #F0EBE1;
+  position: sticky;
+  top: 0;
+  background: var(--color-white, #FFFFFF);
+}
+
+.qe-new-client-row:hover {
+  background: #FFF6ED;
+}
+
+.qe-client-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+
+.qe-client-row:hover {
+  background: var(--color-moonshell, #F4F1EC);
+}
+
+.qe-client-name {
+  color: var(--color-graphite, #333333);
+  font-weight: 600;
+}
+
+.qe-client-meta {
+  color: #A79F8F;
+  font-size: 12px;
+}
+
+.qe-client-empty {
+  padding: 14px 12px;
+  color: #A79F8F;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.qe-autofill-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #3B6D11;
+  margin-top: 5px;
+}
+
+.qe-newclient-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFF6ED;
+  border: 1px solid #FFD9B3;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #B85C00;
+  margin-top: 6px;
+}
+
+.qe-err {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-error, #C0392B);
+  margin-top: 4px;
+}
+
+.qe-err.qe-warn {
+  color: #B85C00;
+}
+
+.qe-attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.qe-attach-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #E5DFD3;
+  border-radius: 6px;
+  background: var(--color-moonshell, #F4F1EC);
+}
+
+.qe-attach-name {
+  color: var(--color-graphite, #333333);
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.qe-attach-size {
+  font-size: 11.5px;
+  color: #A79F8F;
+  flex-shrink: 0;
+}
+
+.qe-attach-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8B8778;
+  display: flex;
+  align-items: center;
+}
+
+.qe-attach-remove:hover {
+  color: var(--color-error, #C0392B);
+}
+
+@media (max-width: 1100px) {
+  .eqd-split {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .eqd-jcol {
+    border-left: none;
+    border-top: 1px solid #EEE9DF;
+  }
+}
+
+
+/* ---- Butter-Smooth CSS Grid Animation for in-place card extension (matching Clients module) ---- */
+.clt-x-in {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: visible;
+}
+
+.clt-x-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 16px 14px;
+}
+
+.clt-x-row.opening .clt-x-in {
+  animation: clt-grow 0.38s cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+
+.clt-x-row.closing .clt-x-in {
+  animation: clt-shrink 0.28s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+
+@keyframes clt-grow {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  30% {
+    opacity: 0.5;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clt-shrink {
+  from {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes clt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+

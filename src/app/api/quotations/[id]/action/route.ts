@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
-import { computeEffectiveStatus } from '../../route';
+import { readinessOf, nextQuoteNumber, followupInfo, versionLabelOf, normalizeQuoteStatus } from '@/lib/quotations/quoteService';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const cookieStore = await cookies();
-    const userId = cookieStore.get('user_id')?.value;
+    const userId = cookieStore.get('user_id')?.value || null;
     const userName = cookieStore.get('user_name')?.value || 'Admin';
-    const userRole = cookieStore.get('user_role')?.value;
 
     const body = await req.json();
     const { action } = body;
@@ -36,44 +35,44 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'No active version for quotation' }, { status: 400 });
     }
 
-    let newStatus = currentVersion.status;
+    const currentStatus = normalizeQuoteStatus(currentVersion.status);
+    let newStatus = currentStatus;
     let extraVersionData: any = {};
+    let extraQuoteData: any = {};
 
     switch (action) {
+      case 'SUBMIT_FOR_VERIFICATION':
       case 'SUBMIT_VERIFICATION': {
-        newStatus = 'VERIFICATION_REQUIRED';
-
-        // Gracefully persist or update client address if provided
-        if (body.clientAddress) {
-          try {
-            let addresses: any = quotation.client.addresses;
-            if (typeof addresses === 'string') {
-              try { addresses = JSON.parse(addresses); } catch { addresses = []; }
-            }
-            if (!Array.isArray(addresses)) addresses = [];
-            const addrObj = typeof body.clientAddress === 'string'
-              ? { label: 'Billing Address', street: body.clientAddress.trim(), isBilling: true }
-              : {
-                  label: 'Billing Address',
-                  street: body.clientAddress.street || body.clientAddress.addressLine || '',
-                  city: body.clientAddress.city || '',
-                  state: body.clientAddress.state || '',
-                  zip: body.clientAddress.zip || body.clientAddress.pincode || '',
-                  isBilling: true
-                };
-            if (addrObj.street || addrObj.city || addrObj.state) {
-              addresses.push(addrObj);
-              await prisma.client.update({
-                where: { id: quotation.clientId },
-                data: { addresses }
-              });
-            }
-          } catch (e) {
-            console.error('Failed to save client address', e);
-          }
+        if (currentStatus !== 'Draft') {
+          return NextResponse.json({ error: 'Only a draft can be submitted for verification' }, { status: 400 });
         }
 
-        // Interlock: Advance linked Enquiry stage to 'Quoted'
+        // 1. Mandatory 8-point Readiness check
+        const readiness = readinessOf(quotation, quotation.client);
+        if (!readiness.ready) {
+          const open = readiness.items.filter(i => !i.done);
+          return NextResponse.json(
+            {
+              error: `Not ready to submit: ${open.map(i => `${i.label} (${i.detail})`).join('; ')}`,
+              errors: open.map(i => `${i.label}: ${i.detail}`),
+              readiness
+            },
+            { status: 400 }
+          );
+        }
+
+        // 2. Assign client-facing quotation number if not numbered yet
+        if (!quotation.code) {
+          const officialNumber = await nextQuoteNumber();
+          extraQuoteData.code = officialNumber;
+          extraQuoteData.quotationNumber = officialNumber;
+          extraVersionData.versionCode = `${officialNumber}-${versionLabelOf(currentVersion.versionNo)}`;
+        }
+
+        newStatus = 'Verification Required';
+        extraVersionData.submittedAt = new Date();
+
+        // 3. Advance linked Enquiry to 'Quoted'
         if (quotation.enquiryId) {
           await prisma.enquiry.update({
             where: { id: quotation.enquiryId },
@@ -84,9 +83,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
 
       case 'VERIFY': {
-        newStatus = 'ADMIN_APPROVAL_REQUIRED';
+        if (currentStatus !== 'Verification Required') {
+          return NextResponse.json({ error: 'Quote is not awaiting verification' }, { status: 400 });
+        }
+        newStatus = 'Admin Approval Required';
         extraVersionData = {
-          verifiedById: userId || null,
+          verifiedById: userId,
           verifiedByName: userName,
           verifiedAt: new Date()
         };
@@ -94,22 +96,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
 
       case 'APPROVE': {
-        newStatus = 'APPROVED';
+        if (currentStatus !== 'Admin Approval Required') {
+          return NextResponse.json({ error: 'Quote is not awaiting approval' }, { status: 400 });
+        }
+        newStatus = 'Approved';
         extraVersionData = {
-          approvedById: userId || null,
+          approvedById: userId,
           approvedByName: userName,
-          approvedAt: new Date()
+          approvedAt: new Date(),
+          verifiedAt: currentVersion.verifiedAt || new Date(),
+          verifiedById: currentVersion.verifiedById || userId,
+          verifiedByName: currentVersion.verifiedByName || userName
         };
         break;
       }
 
-      case 'REJECT_APPROVAL': {
-        newStatus = 'NOT_APPROVED';
+      case 'REJECT_APPROVAL':
+      case 'REJECT': {
+        newStatus = 'Not Approved';
         break;
       }
 
       case 'MARK_SENT': {
-        newStatus = 'SENT';
+        if (currentStatus !== 'Approved') {
+          return NextResponse.json({ error: 'Only an Approved quote can be marked Sent' }, { status: 400 });
+        }
+        newStatus = 'Sent';
         extraVersionData = {
           sentAt: new Date()
         };
@@ -117,31 +129,45 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
 
       case 'LOG_FOLLOWUP': {
+        if (currentStatus !== 'Sent') {
+          return NextResponse.json({ error: 'Follow-up only applies to a quote that has been sent' }, { status: 400 });
+        }
         const existingFollowups = Array.isArray(currentVersion.followupDoneAt)
           ? (currentVersion.followupDoneAt as string[])
           : [];
-        const updatedFollowups = [...existingFollowups, new Date().toISOString()];
         extraVersionData = {
-          followupDoneAt: updatedFollowups
+          followupDoneAt: [...existingFollowups, new Date().toISOString()]
         };
 
-        // If follow-up note was provided, log it in enquiry notes
-        if (body.note && quotation.enquiryId) {
-          const timestamp = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-          const newEntry = `[${timestamp} Follow-up via ${body.channel || 'Phone'}] ${body.note}`;
-          const currentNotes = quotation.enquiry?.notes ? `${quotation.enquiry.notes}\n${newEntry}` : newEntry;
-          await prisma.enquiry.update({
-            where: { id: quotation.enquiryId },
-            data: { notes: currentNotes }
+        // Write CommunicationLog entry if details provided
+        if (body.description && quotation.enquiryId) {
+          await prisma.communicationLog.create({
+            data: {
+              enquiryId: quotation.enquiryId,
+              stage: 'Quote',
+              date: new Date().toISOString().slice(0, 10),
+              mode: body.mode || 'Phone',
+              description: body.description,
+              comment: body.comment || null,
+              loggedById: userId,
+              loggedByName: userName
+            }
           }).catch(console.error);
         }
         break;
       }
 
-      case 'CONVERT': {
-        newStatus = 'CONVERTED';
+      case 'CONVERT':
+      case 'CLIENT_APPROVED': {
+        if (currentStatus !== 'Sent') {
+          return NextResponse.json({ error: 'Only a sent quote can be converted' }, { status: 400 });
+        }
+        newStatus = 'Converted';
+        extraVersionData = {
+          decidedAt: new Date()
+        };
 
-        // Interlock: Advance linked Enquiry stage to 'Converted' (Won!)
+        // Advance linked enquiry to 'Converted'
         if (quotation.enquiryId) {
           await prisma.enquiry.update({
             where: { id: quotation.enquiryId },
@@ -151,21 +177,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         break;
       }
 
-      case 'REJECT_CLIENT': {
-        newStatus = 'NOT_CONVERTED';
-        const reason = body.reason || 'Price Too High';
+      case 'REJECT_CLIENT':
+      case 'CLIENT_REJECTED': {
+        if (currentStatus !== 'Sent') {
+          return NextResponse.json({ error: 'Only a sent quote can be rejected' }, { status: 400 });
+        }
+        newStatus = 'Not Converted';
+        const reason = body.notConvertedReason || body.reason || 'Price Too High';
         extraVersionData = {
-          notConvertedReason: reason
+          notConvertedReason: reason,
+          decidedAt: new Date()
         };
 
-        // Interlock: Mark linked Enquiry as Lost at Quoted stage
+        // Mark linked enquiry as Lost
         if (quotation.enquiryId) {
           await prisma.enquiry.update({
             where: { id: quotation.enquiryId },
-            data: { 
-              outcome: 'Lost', 
-              lostAtStage: 'Quoted', 
-              lostReason: reason,
+            data: {
+              outcome: 'Lost',
+              lostAtStage: 'Quoted',
+              lostReason: body.lostReasonId || reason,
+              lostNote: reason,
               status: 'DROPPED'
             }
           }).catch(console.error);
@@ -188,23 +220,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     // Update parent quotation
-    await prisma.quotation.update({
+    const updatedQuote = await prisma.quotation.update({
       where: { id },
-      data: { status: newStatus }
+      data: {
+        status: newStatus,
+        ...extraQuoteData
+      }
     });
 
-    const effectiveStatus = computeEffectiveStatus(
-      updatedVersion.status,
-      updatedVersion.sentAt,
-      updatedVersion.followupDoneAt as string[]
-    );
+    const fu = followupInfo(updatedVersion);
+    const effectiveStatus = fu.followupNeeded ? 'Followup Needed' : updatedVersion.status;
 
     return NextResponse.json({
-      id: quotation.id,
-      quotationNumber: quotation.quotationNumber,
+      id: updatedQuote.id,
+      code: updatedQuote.code,
+      number: updatedQuote.code,
+      quotationNumber: updatedQuote.quotationNumber,
       status: updatedVersion.status,
       effectiveStatus,
-      latestVersion: updatedVersion
+      latestVersion: {
+        ...updatedVersion,
+        versionLabel: versionLabelOf(updatedVersion.versionNo),
+        createdAt: updatedVersion.createdAt.toISOString()
+      }
     });
   } catch (err: any) {
     console.error('Error executing quotation action:', err);

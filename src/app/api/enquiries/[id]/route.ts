@@ -1,18 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { canAdvanceStage } from '@/lib/enquiryUtils';
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const enquiry = await prisma.enquiry.findUnique({
       where: { id },
       include: {
-        items: true,
         client: true,
+        category: true,
         salesperson: true,
+        items: true,
+        communicationLogs: {
+          orderBy: { date: 'desc' }
+        },
+        files: {
+          orderBy: { createdAt: 'desc' }
+        },
         quotations: {
-          select: { id: true, quotationNumber: true, status: true, totalAmount: true, createdAt: true }
+          include: {
+            versions: {
+              orderBy: { versionNo: 'desc' }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        },
+        jobOrders: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
         }
       }
     });
@@ -21,146 +37,140 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
+    const latestQuote = enquiry.quotations?.[0] || null;
+    const latestJob = enquiry.jobOrders?.[0] || null;
+
+    const formattedQuote = latestQuote ? {
+      id: latestQuote.id,
+      quotationNumber: latestQuote.quotationNumber,
+      number: latestQuote.quotationNumber,
+      status: latestQuote.status,
+      effectiveStatus: latestQuote.status,
+      totalAmount: latestQuote.totalAmount,
+      createdAt: latestQuote.createdAt.toISOString(),
+      versions: latestQuote.versions.map(v => ({
+        id: v.id,
+        versionNo: v.versionNo,
+        versionCode: v.versionCode,
+        versionLabel: v.versionCode,
+        grossTotal: v.grossTotal,
+        totals: { grandTotal: v.grossTotal },
+        status: v.status,
+        createdAt: v.createdAt.toISOString(),
+      })),
+      currentVersion: latestQuote.versions?.[0] ? {
+        id: latestQuote.versions[0].id,
+        versionNo: latestQuote.versions[0].versionNo,
+        versionCode: latestQuote.versions[0].versionCode,
+        versionLabel: latestQuote.versions[0].versionCode,
+        totals: { grandTotal: latestQuote.versions[0].grossTotal },
+        status: latestQuote.versions[0].status,
+        createdAt: latestQuote.versions[0].createdAt.toISOString(),
+      } : {
+        versionNo: 1,
+        versionCode: 'v1',
+        versionLabel: 'v1',
+        totals: { grandTotal: latestQuote.totalAmount },
+      }
+    } : null;
+
+    const formattedJob = latestJob ? {
+      id: latestJob.id,
+      jobNumber: latestJob.jobNumber,
+      status: latestJob.status,
+      bomStatus: latestJob.bomStatus,
+      procurementStatus: latestJob.procurementStatus,
+      productionStatus: latestJob.productionStatus,
+      holdReason: latestJob.holdReason,
+      cancelledReason: latestJob.cancelledReason,
+      productionDueDate: latestJob.productionDueDate ? latestJob.productionDueDate.toISOString() : null,
+      createdAt: latestJob.createdAt.toISOString(),
+      orderDate: latestJob.orderDate ? latestJob.orderDate.toISOString() : null,
+      createdByName: latestJob.salespersonName || null,
+    } : null;
+
+    const clientPhones = Array.isArray(enquiry.client?.phones) ? (enquiry.client.phones as string[]) : [];
+    const clientEmails = Array.isArray(enquiry.client?.emails) ? (enquiry.client.emails as string[]) : [];
+    const clientPhoneDetails = Array.isArray(enquiry.client?.phoneDetails) ? enquiry.client.phoneDetails : [];
+    const clientAddresses = Array.isArray(enquiry.client?.addresses) ? enquiry.client.addresses : [];
+
+    const formattedEnquiry = {
       ...enquiry,
+      code: enquiry.enquiryNumber,
       clientName: enquiry.client?.name || 'Unknown Client',
       clientCode: enquiry.client?.clientCode || null,
-      clientPhones: Array.isArray(enquiry.client?.phones) ? (enquiry.client.phones as string[]) : [],
-      clientEmails: Array.isArray(enquiry.client?.emails) ? (enquiry.client.emails as string[]) : []
-    });
+      clientPhones,
+      clientEmails,
+      client: enquiry.client ? {
+        ...enquiry.client,
+        displayName: enquiry.client.name,
+        phones: clientPhones,
+        emails: clientEmails,
+        phoneDetails: clientPhoneDetails,
+        addresses: clientAddresses,
+      } : null,
+      lineItems: enquiry.items || [],
+      logs: enquiry.communicationLogs.map(l => ({
+        ...l,
+        date: l.date,
+        createdAt: l.createdAt.toISOString(),
+      })),
+      files: enquiry.files.map(f => ({
+        ...f,
+        createdAt: f.createdAt.toISOString(),
+      })),
+      quote: formattedQuote,
+      jobOrder: formattedJob,
+      createdAt: enquiry.createdAt.toISOString(),
+      updatedAt: enquiry.updatedAt.toISOString(),
+    };
+
+    return NextResponse.json({ enquiry: formattedEnquiry });
   } catch (error: any) {
+    console.error('Error in GET /api/enquiries/[id]:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch enquiry' }, { status: 500 });
   }
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const body = await req.json();
-
-    const existing = await prisma.enquiry.findUnique({
+    const enquiry = await prisma.enquiry.findUnique({
       where: { id },
-      include: { items: true }
+      include: {
+        quotations: true,
+        communicationLogs: true,
+        files: true,
+      }
     });
 
-    if (!existing) {
+    if (!enquiry) {
       return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
     }
 
-    // 1. Stage calculation: apply user-selected stage directly
-    let newStage = existing.stage || 'New';
-    if (body.stage) {
-      newStage = body.stage;
-    }
-
-    // 2. Outcome handling (Open vs Lost)
-    let outcome = body.outcome !== undefined ? body.outcome : (existing.outcome || 'Open');
-    if (body.stage && body.outcome === undefined && outcome === 'Lost') {
-      outcome = 'Open';
-    }
-    let lostAtStage = existing.lostAtStage;
-    let lostReason = existing.lostReason;
-    let lostNote = existing.lostNote;
-
-    if (outcome === 'Lost') {
-      lostAtStage = existing.stage;
-      lostReason = body.lostReason || existing.lostReason || 'Other';
-      lostNote = body.lostNote !== undefined ? body.lostNote : existing.lostNote;
-    } else if (outcome === 'Open') {
-      lostAtStage = null;
-      lostReason = null;
-      lostNote = null;
-    }
-
-    // Synchronize legacy status with stage / outcome
-    let synchronizedStatus = body.status;
-    if (synchronizedStatus === undefined) {
-      if (outcome === 'Lost') synchronizedStatus = 'DROPPED';
-      else if (newStage === 'Converted') synchronizedStatus = 'CONVERTED';
-      else if (newStage === 'Quoted') synchronizedStatus = 'IN_PROGRESS';
-      else if (newStage === 'Qualified') synchronizedStatus = 'QUALIFIED';
-      else if (newStage === 'New') synchronizedStatus = 'NEW';
-    }
-
-    // 3. Overwrite items if provided
-    if (body.items !== undefined) {
-      await prisma.enquiryItem.deleteMany({ where: { enquiryId: id } });
-    }
-
-    const updated = await prisma.enquiry.update({
-      where: { id },
-      data: {
-        clientId: body.clientId !== undefined ? body.clientId : undefined,
-        status: synchronizedStatus,
-        stage: newStage,
-        outcome,
-        lostAtStage,
-        lostReason,
-        lostNote,
-
-        enteredById: body.enteredById !== undefined ? body.enteredById : undefined,
-        enteredByName: body.enteredByName !== undefined ? body.enteredByName : undefined,
-        salespersonId: body.salespersonId !== undefined ? body.salespersonId : undefined,
-        salespersonName: body.salespersonName !== undefined ? body.salespersonName : undefined,
-
-        notes: body.notes !== undefined ? body.notes : undefined,
-        expectedTimeline: body.expectedTimeline !== undefined ? body.expectedTimeline : undefined,
-        estimatedBudget: body.estimatedBudget !== undefined ? (body.estimatedBudget ? parseFloat(body.estimatedBudget) : null) : undefined,
-        propertyType: body.propertyType !== undefined ? body.propertyType : undefined,
-        nextFollowUp: body.nextFollowUp !== undefined ? (body.nextFollowUp ? new Date(body.nextFollowUp) : null) : undefined,
-        sourceCategory: body.sourceCategory !== undefined ? body.sourceCategory : undefined,
-        sourceName: body.sourceName !== undefined ? body.sourceName : undefined,
-        attachments: body.attachments !== undefined ? body.attachments : undefined,
-
-        items: body.items !== undefined ? {
-          create: body.items.map((item: any) => ({
-            description: item.description?.trim() || 'Custom Unit',
-            quantity: item.quantity ? parseInt(item.quantity, 10) : 1,
-            unitPrice: item.unitPrice ? parseFloat(item.unitPrice) : 0,
-            total: item.total ? parseFloat(item.total) : 0,
-            expectedDimensions: item.expectedDimensions?.trim() || null,
-            materialPreference: item.materialPreference?.trim() || null,
-            clientComment: item.clientComment?.trim() || null
-          }))
-        } : undefined
-      },
-      include: { items: true, client: true, salesperson: true, quotations: true }
-    });
-
-    return NextResponse.json({
-      ...updated,
-      clientName: updated.client?.name || 'Unknown Client',
-      clientCode: updated.client?.clientCode || null,
-      clientPhones: Array.isArray(updated.client?.phones) ? (updated.client.phones as string[]) : [],
-      clientEmails: Array.isArray(updated.client?.emails) ? (updated.client.emails as string[]) : []
-    });
-  } catch (error: any) {
-    console.error('Error updating enquiry:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update enquiry' }, { status: 500 });
-  }
-}
-
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-
-    // Guard: Check if linked quotations exist
-    const quoteCount = await prisma.quotation.count({
-      where: { enquiryId: id }
-    });
-
-    if (quoteCount > 0) {
+    // Guard 1: Cannot delete if quotation exists
+    if (enquiry.quotations.length > 0) {
       return NextResponse.json({
-        error: `Cannot delete enquiry: ${quoteCount} quotation(s) are permanently attached. Mark as Lost or archive instead to preserve audit records.`
+        error: 'Cannot delete: this enquiry has a Quote. Quotes are permanent records once created.'
       }, { status: 409 });
     }
 
+    // Guard 2: Cannot delete if communication has ever been logged
+    if (enquiry.hasCommunication || enquiry.communicationLogs.length > 0) {
+      return NextResponse.json({
+        error: 'Cannot delete: communication has already been logged on this enquiry, so it is kept as the record of it.'
+      }, { status: 409 });
+    }
+
+    // Cascade delete related records
     await prisma.enquiryItem.deleteMany({ where: { enquiryId: id } });
+    await prisma.communicationLog.deleteMany({ where: { enquiryId: id } });
+    await prisma.enquiryFile.deleteMany({ where: { enquiryId: id } });
     await prisma.enquiry.delete({ where: { id } });
 
     return NextResponse.json({ success: true, message: 'Enquiry deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting enquiry:', error);
+    console.error('Error in DELETE /api/enquiries/[id]:', error);
     return NextResponse.json({ error: error.message || 'Failed to delete enquiry' }, { status: 500 });
   }
 }

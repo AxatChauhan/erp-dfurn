@@ -87,17 +87,17 @@ export default function Sidebar({ userRole }: { userRole: string }) {
           
           {/* Dashboard */}
           <Link 
-            href="/clients" 
+            href="/dashboard" 
             prefetch={true}
             title="Dashboard"
-            onMouseEnter={() => router.prefetch('/clients')}
-            onClick={() => handleNavClick('/clients')}
+            onMouseEnter={() => router.prefetch('/dashboard')}
+            onClick={() => handleNavClick('/dashboard')}
             className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
-              activePath === '/' || activePath === '/dashboard' || activePath === '/clients' ? 'text-orange-600' : 'text-gray-700'
+              activePath === '/dashboard' ? 'text-orange-600' : 'text-gray-700'
             }`}
           >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-              activePath === '/' || activePath === '/dashboard' || activePath === '/clients' 
+              activePath === '/dashboard' 
                 ? 'bg-orange-500 text-white shadow-xs' 
                 : 'text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-900'
             }`}>

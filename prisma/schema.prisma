@@ -94,11 +94,30 @@ model Enquiry {
   nextFollowUp     DateTime?
   notes            String?       // Communication log or notes
   
+  // Qualification & Brief
+  brief            String?       @db.Text      // Client needs in their words
+  opportunityValue Float?                      // Estimated lead value in ₹
+  qualifiedById    String?
+  qualifiedByName  String?
+  stageDates       Json?                       // e.g. { Qualified: ISO, Quoted: ISO, Converted: ISO }
+  lostAt           DateTime?
+  lostReasonId     String?
+  hasCommunication Boolean       @default(false) // Locked delete flag
+  history          Json?                       // Status change audit events [{ type, at, byId, byName, atStage }]
+  origin           Json?                       // { channel, externalId, receivedAt, payload }
+  originKey        String?       @unique       // lower(channel:externalId) for idempotent intake
+
+  // Category & Classification
+  categoryId       String?
+  category         Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sourceCategoryId String?
   sourceCategory   String?       // 'DIRECT', 'REFERRAL', 'ARCHITECT', 'WEBSITE', 'INSTAGRAM'
   sourceName       String?
   attachments      Json?         // Array of { name, url }
   
   items            EnquiryItem[]
+  communicationLogs CommunicationLog[]
+  files            EnquiryFile[]
   quotations       Quotation[]
   jobOrders        JobOrder[]
   
@@ -109,6 +128,8 @@ model Enquiry {
   @@index([stage, outcome])
   @@index([createdAt(sort: Desc)])
   @@index([salespersonId])
+  @@index([categoryId])
+  @@index([originKey])
 }
 
 model EnquiryItem {
@@ -123,18 +144,77 @@ model EnquiryItem {
   expectedDimensions String?  // e.g., "2400x600x2100mm"
   materialPreference String?  // e.g., "Prelam MDF + 1mm Merino Laminate"
   clientComment      String?  // Exact client voice/spec notes
+  
+  refType            String?  // 'Variant' | 'MasterProduct'
+  refId              String?
+  comment            String?
+  customizations     Json?
+}
+
+model CommunicationLog {
+  id           String   @id @default(uuid())
+  enquiryId    String
+  enquiry      Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  stage        String   @default("Enquiry") // "Enquiry" | "Quote"
+  date         String   // "YYYY-MM-DD"
+  mode         String   // "Call", "Email", "WhatsApp", "Meeting", "Site Visit"
+  description  String   @db.Text
+  comment      String?  @db.Text
+  loggedById   String?
+  loggedByName String?
+  createdAt    DateTime @default(now())
+
+  @@index([enquiryId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model EnquiryFile {
+  id             String   @id @default(uuid())
+  enquiryId      String
+  enquiry        Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  slot           String
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  url            String
+  stage          String   @default("Enquiry") // "Enquiry" | "Quote"
+  uploadedById   String?
+  uploadedByName String?
+  createdAt      DateTime @default(now())
+
+  @@index([enquiryId])
+}
+
+model LostReason {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  code      String?   @unique
+  enquiries Enquiry[]
+  createdAt DateTime  @default(now())
 }
 
 model Quotation {
   id               String             @id @default(uuid())
   quotationNumber  String             @unique 
+  code             String?            // Client-facing number: DF/Q/2026-27/0001 (assigned when first submitted; null while Draft)
+  enquiryCode      String?            // Permanent link back to enquiry: DF_ENQ_14102026_01
   clientId         String
   client           Client             @relation(fields: [clientId], references: [id])
   enquiryId        String?
   enquiry          Enquiry?           @relation(fields: [enquiryId], references: [id])
+  salespersonId    String?
+  salespersonName  String?
+  thumbnails       Json?              // Frozen product thumbnails { "Variant:id": { data, type } }
   
   currentVersionNo Int                @default(1)
-  status           String             @default("GENERATED") // GENERATED, VERIFICATION_REQUIRED, ADMIN_APPROVAL_REQUIRED, APPROVED, NOT_APPROVED, SENT, CONVERTED, NOT_CONVERTED
+  status           String             @default("Draft") // Draft, Verification Required, Admin Approval Required, Approved, Not Approved, Sent, Converted, Not Converted
   totalAmount      Float              @default(0.00)
   
   items            QuotationItem[]
@@ -145,6 +225,7 @@ model Quotation {
 
   @@index([clientId])
   @@index([enquiryId])
+  @@index([salespersonId])
   @@index([status])
   @@index([createdAt(sort: Desc)])
 }
@@ -154,8 +235,8 @@ model QuotationVersion {
   quotationId         String
   quotation           Quotation                   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   versionNo           Int                         @default(1)
-  versionCode         String                      // e.g. DF_QT_000001-v1
-  status              String                      @default("GENERATED")
+  versionCode         String                      // e.g. DF/Q/2026-27/0001-v0 or Draft · DF_ENQ_...
+  status              String                      @default("Draft")
   
   // Pricing & Commercials
   grossTotal          Float                       @default(0.00)
@@ -169,15 +250,20 @@ model QuotationVersion {
   gstRatePct          Float                       @default(18.0)
   gstAmount           Float                       @default(0.00)
   grandTotal          Float                       @default(0.00)
+  previousGrandTotal  Float?
   
   // Items, Additional Charges & Terms
   items               QuotationItem[]
   additionalCharges   QuotationAdditionalCharge[]
-  terms               Json?                       // snapshot array of { id, title, body }
+  terms               Json?                       // snapshot array of terms with values
+  validUntil          DateTime?
   
-  // Approvals & Audit Trail
+  // Revisions & Audit Trail
+  reason              String?                     // Reason why this revision was made
+  changes             Json?                       // Pre-computed diff list [{ scope, lineId, field, label, type, from, to }]
   createdById         String?
   createdByName       String?
+  submittedAt         DateTime?
   verifiedById        String?
   verifiedByName      String?
   verifiedAt          DateTime?
@@ -187,6 +273,7 @@ model QuotationVersion {
   sentAt              DateTime?
   followupDoneAt      Json?                       // Array of ISO timestamp strings
   notConvertedReason  String?
+  decidedAt           DateTime?
   supersededAt        DateTime?
   
   createdAt           DateTime                    @default(now())
@@ -198,11 +285,15 @@ model QuotationVersion {
 
 model QuotationItem {
   id                 String            @id @default(uuid())
+  lineId             String?           // Stable across revisions (UUID)
   quotationId        String?
   quotation          Quotation?        @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   versionId          String?
   version            QuotationVersion? @relation(fields: [versionId], references: [id], onDelete: Cascade)
   
+  refType            String?           @default("Variant") // Variant | MasterProduct
+  refId              String?
+  snapshot           Json?             // { name, code, unit, imageUrl }
   description        String
   quantity           Int               @default(1)
   unitPrice          Float             @default(0.00)
@@ -211,12 +302,14 @@ model QuotationItem {
   discountAmount     Float?            @default(0.00)
   total              Float             @default(0.00)
   
+  customizations     Json?             // [{ key, entryId, name, pending, confirmBy, note }]
   expectedDimensions String?           // e.g. "2400x600x2100mm"
   materialPreference String?           // e.g. "Prelam MDF + 1mm Merino Laminate"
   clientComment      String?           // Client notes
 
   @@index([quotationId])
   @@index([versionId])
+  @@index([lineId])
 }
 
 model QuotationAdditionalCharge {
