@@ -1,0 +1,41 @@
+name: Tri-Module Data Integrity & Cross-Module Synchronization CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  verify-and-audit:
+    name: Verify Data Sync & Mandates
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BASE_URL: ${{ secrets.VERCEL_BASE_URL || 'https://optimistic-carson-one.vercel.app' }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Static Verification & TypeScript Audit
+        run: npm run verify
+
+      - name: Tri-Module Data Integrity & Invariants Suite
+        run: npm run test:sync
+
+      - name: Full Business Logic & Chaos Probe Suite
+        run: npm test

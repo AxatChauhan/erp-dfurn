@@ -1,0 +1,24 @@
+#!/bin/sh
+# D'furn Modular Systems ERP - Tri-Module Pre-Push Verification Hook
+# Blocks git push if cross-module data synchronization, arithmetic invariants, or owner mandates fail.
+
+echo ""
+echo "============================================================"
+echo " [D'furn ERP] Running Pre-Push Tri-Module Integrity Verification"
+echo "============================================================"
+
+npm run test:sync
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌ [BLOCKED] Push rejected: Cross-module synchronization check failed."
+  echo "Run 'npm run test:sync' to view and fix failures before pushing."
+  exit 1
+fi
+
+echo ""
+echo "✅ [PASSED] Tri-Module synchronization verified cleanly."
+echo "============================================================"
+echo ""
+exit 0
