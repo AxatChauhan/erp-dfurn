@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionToken } from './lib/session';
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value;
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static assets, images, and auth APIs through unconditionally
@@ -15,13 +15,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const token = request.cookies.get('auth_token')?.value;
+  const session = token ? await verifySessionToken(token) : null;
   const isLoginPage = pathname.startsWith('/login');
 
-  if (!token && !isLoginPage) {
+  // For API endpoints, return 401 JSON instead of redirecting to HTML login page
+  if (pathname.startsWith('/api/')) {
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Authentication token is missing or invalid' },
+        { status: 401 }
+      );
+    }
+    return NextResponse.next();
+  }
+
+  // Page routes: Redirect unauthenticated requests to /login
+  if (!session && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (token && isLoginPage) {
+  // Page routes: Redirect authenticated users away from /login to /clients
+  if (session && isLoginPage) {
     return NextResponse.redirect(new URL('/clients', request.url));
   }
 

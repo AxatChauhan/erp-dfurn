@@ -232,87 +232,92 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const nextLabel = versionLabelOf(nextVersionNo);
     const nextVersionCode = existing.code ? `${existing.code}-${nextLabel}` : `Draft · ${existing.enquiryCode || existing.quotationNumber}`;
 
-    // Mark current version as superseded
-    await prisma.quotationVersion.update({
-      where: { id: currentVersion.id },
-      data: { supersededAt: new Date() }
-    });
+    // Atomically supersede old version, create new version, and update quotation
+    const { newVersion, updatedQuotation } = await prisma.$transaction(async (tx) => {
+      // Mark current version as superseded
+      await tx.quotationVersion.update({
+        where: { id: currentVersion.id },
+        data: { supersededAt: new Date() }
+      });
 
-    // Create the new version atomically
-    const newVersion = await prisma.quotationVersion.create({
-      data: {
-        quotationId: existing.id,
-        versionNo: nextVersionNo,
-        versionCode: nextVersionCode,
-        status: 'Draft',
-        grossTotal: computed.grossTotal,
-        overallDiscountType: computed.overallDiscountType,
-        overallDiscountVal: computed.overallDiscountVal,
-        overallDiscountAmt: computed.overallDiscountAmt,
-        discountedGross: computed.discountedGross,
-        extraCostsTotal: computed.extraCostsTotal,
-        gstApplicable: computed.gstApplicable,
-        gstRatePct: computed.gstRatePct,
-        gstAmount: computed.gstAmount,
-        grandTotal: computed.grandTotal,
-        previousGrandTotal: currentVersion.grandTotal,
-        validUntil: validUntilDate,
-        reason,
-        changes: (changes || []) as any,
-        terms: termsToSave,
-        createdById: userId,
-        createdByName: userName,
-        items: {
-          create: computed.items.map(it => ({
-            lineId: it.lineId,
-            refType: it.refType,
-            refId: it.refId,
-            snapshot: it.snapshot,
-            description: it.description,
-            quantity: it.quantity,
-            unitPrice: it.unitPrice,
-            discountType: it.discountType,
-            discountValue: it.discountValue,
-            discountAmount: it.discountAmount,
-            total: it.total,
-            customizations: it.customizations,
-            expectedDimensions: it.expectedDimensions,
-            materialPreference: it.materialPreference,
-            clientComment: it.clientComment
-          }))
+      // Create the new version atomically
+      const nv = await tx.quotationVersion.create({
+        data: {
+          quotationId: existing.id,
+          versionNo: nextVersionNo,
+          versionCode: nextVersionCode,
+          status: 'Draft',
+          grossTotal: computed.grossTotal,
+          overallDiscountType: computed.overallDiscountType,
+          overallDiscountVal: computed.overallDiscountVal,
+          overallDiscountAmt: computed.overallDiscountAmt,
+          discountedGross: computed.discountedGross,
+          extraCostsTotal: computed.extraCostsTotal,
+          gstApplicable: computed.gstApplicable,
+          gstRatePct: computed.gstRatePct,
+          gstAmount: computed.gstAmount,
+          grandTotal: computed.grandTotal,
+          previousGrandTotal: currentVersion.grandTotal,
+          validUntil: validUntilDate,
+          reason,
+          changes: (changes || []) as any,
+          terms: termsToSave,
+          createdById: userId,
+          createdByName: userName,
+          items: {
+            create: computed.items.map(it => ({
+              lineId: it.lineId,
+              refType: it.refType,
+              refId: it.refId,
+              snapshot: it.snapshot,
+              description: it.description,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              discountType: it.discountType,
+              discountValue: it.discountValue,
+              discountAmount: it.discountAmount,
+              total: it.total,
+              customizations: it.customizations,
+              expectedDimensions: it.expectedDimensions,
+              materialPreference: it.materialPreference,
+              clientComment: it.clientComment
+            }))
+          },
+          additionalCharges: {
+            create: computed.additionalCharges.map(c => ({
+              title: c.title,
+              amount: c.amount,
+              taxable: c.taxable
+            }))
+          }
         },
-        additionalCharges: {
-          create: computed.additionalCharges.map(c => ({
-            title: c.title,
-            amount: c.amount,
-            taxable: c.taxable
-          }))
+        include: {
+          items: true,
+          additionalCharges: true
         }
-      },
-      include: {
-        items: true,
-        additionalCharges: true
-      }
-    });
+      });
 
-    // Update parent quotation
-    const updatedQuotation = await prisma.quotation.update({
-      where: { id },
-      data: {
-        currentVersionNo: nextVersionNo,
-        status: 'Draft',
-        totalAmount: computed.grandTotal,
-        salespersonId: body.salespersonId !== undefined ? body.salespersonId : existing.salespersonId,
-        salespersonName: body.salespersonName !== undefined ? body.salespersonName : existing.salespersonName
-      },
-      include: {
-        client: true,
-        enquiry: true,
-        versions: {
-          orderBy: { versionNo: 'desc' },
-          include: { items: true, additionalCharges: true }
+      // Update parent quotation
+      const uq = await tx.quotation.update({
+        where: { id },
+        data: {
+          currentVersionNo: nextVersionNo,
+          status: 'Draft',
+          totalAmount: computed.grandTotal,
+          salespersonId: body.salespersonId !== undefined ? body.salespersonId : existing.salespersonId,
+          salespersonName: body.salespersonName !== undefined ? body.salespersonName : existing.salespersonName
+        },
+        include: {
+          client: true,
+          enquiry: true,
+          versions: {
+            orderBy: { versionNo: 'desc' },
+            include: { items: true, additionalCharges: true }
+          }
         }
-      }
+      });
+
+      return { newVersion: nv, updatedQuotation: uq };
     });
 
     const readiness = readinessOf(updatedQuotation, updatedQuotation.client);
@@ -365,7 +370,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       );
     }
 
-    await prisma.quotation.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.quotationItem.deleteMany({ where: { quotationId: id } });
+      await tx.quotationVersion.deleteMany({ where: { quotationId: id } });
+      await tx.quotation.delete({ where: { id } });
+    });
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('Error deleting draft quotation:', err);

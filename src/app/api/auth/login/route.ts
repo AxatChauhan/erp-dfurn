@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { signSessionToken, verifyPassword, hashPassword } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
@@ -44,10 +45,7 @@ export async function POST(req: Request) {
     let authenticatedUser: { id: string; name: string; username: string; role: string } | null = null;
 
     if (user) {
-      const dbPasswordMatch =
-        user.password === password ||
-        user.password === body.password ||
-        user.password.trim() === password;
+      const dbPasswordMatch = verifyPassword(password, user.password);
 
       if (dbPasswordMatch) {
         authenticatedUser = {
@@ -56,6 +54,14 @@ export async function POST(req: Request) {
           username: user.username,
           role: user.role,
         };
+
+        // If password was stored in plaintext, auto-upgrade to salted PBKDF2 hash
+        if (!user.password.startsWith('pbkdf2:')) {
+          prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashPassword(password) },
+          }).catch(() => {});
+        }
       }
     }
 
@@ -67,7 +73,6 @@ export async function POST(req: Request) {
       );
 
       if (fallbackPasswordMatch) {
-        // Try to persist this fallback user in the database in the background
         let createdId = `usr-${lowerUsername}`;
         try {
           const created = await prisma.user.upsert({
@@ -76,7 +81,7 @@ export async function POST(req: Request) {
             create: {
               username: lowerUsername,
               name: fallback.name,
-              password: password,
+              password: hashPassword(password),
               role: fallback.role,
             },
           });
@@ -101,6 +106,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Cryptographically sign the session token
+    const signedToken = await signSessionToken({
+      userId: authenticatedUser.id,
+      username: authenticatedUser.username,
+      name: authenticatedUser.name,
+      role: authenticatedUser.role as any,
+    });
+
     // Prepare response with cookies
     const res = NextResponse.json({
       success: true,
@@ -115,8 +128,8 @@ export async function POST(req: Request) {
       sameSite: 'lax' as const,
     };
 
-    // Set cookies on response directly
-    res.cookies.set('auth_token', `token-${authenticatedUser.id}`, {
+    // Set signed auth_token on response directly
+    res.cookies.set('auth_token', signedToken, {
       ...cookieOptions,
       httpOnly: true,
     });
@@ -136,7 +149,7 @@ export async function POST(req: Request) {
     // Also set via next/headers cookies() for server component compatibility
     try {
       const cookieStore = await cookies();
-      cookieStore.set('auth_token', `token-${authenticatedUser.id}`, {
+      cookieStore.set('auth_token', signedToken, {
         ...cookieOptions,
         httpOnly: true,
       });

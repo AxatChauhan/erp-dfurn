@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    const isSuperAdmin = session?.role === 'SUPER_ADMIN';
+
     const url = new URL(req.url);
     const search = url.searchParams.get('search')?.trim() || '';
     const departmentId = url.searchParams.get('departmentId');
@@ -44,7 +48,21 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json(employees);
+    // PII Protection: Mask sensitive identity and banking data for non-Super Admin callers
+    const safeEmployees = employees.map(emp => {
+      if (isSuperAdmin) return emp;
+      return {
+        ...emp,
+        aadhaarNumber: emp.aadhaarNumber ? `•••• •••• ${emp.aadhaarNumber.slice(-4)}` : null,
+        panNumber: emp.panNumber ? `••••••${emp.panNumber.slice(-4)}` : null,
+        accountNumber: emp.accountNumber ? `••••••••${emp.accountNumber.slice(-4)}` : null,
+        bankName: emp.bankName ? '••••' : null,
+        ifscCode: null,
+        baseRate: null,
+      };
+    });
+
+    return NextResponse.json(safeEmployees);
   } catch (error: any) {
     console.error('Error fetching employees:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch employees' }, { status: 500 });
@@ -53,6 +71,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+
     const body = await req.json();
 
     if (!body.name || !body.name.trim()) {

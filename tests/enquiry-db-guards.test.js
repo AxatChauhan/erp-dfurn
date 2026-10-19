@@ -6,6 +6,31 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 describe('Database Integrity & Business Guard Tests', () => {
+  before(async () => {
+    const enq = await prisma.enquiry.findUnique({
+      where: { enquiryNumber: 'DF_ENQ_15102026_02' },
+      include: { quotations: true }
+    });
+    if (enq && enq.quotations && enq.quotations.length > 0) {
+      for (const q of enq.quotations) {
+        await prisma.quotationItem.deleteMany({ where: { quotationId: q.id } }).catch(() => {});
+        await prisma.quotationVersion.deleteMany({ where: { quotationId: q.id } }).catch(() => {});
+        await prisma.quotation.delete({ where: { id: q.id } }).catch(() => {});
+      }
+    }
+    const originalHistory = [
+      { at: "2026-10-15T09:05:28.891Z", byId: null, type: "qualified", byName: "Evaluator" },
+      { at: "2026-10-15T09:05:37.509Z", byId: null, type: "unqualified", byName: "Evaluator" },
+      { at: "2026-10-15T09:05:48.279Z", byId: null, type: "reopened", byName: "User" },
+      { at: "2026-10-15T09:06:10.540Z", byId: null, type: "lost", byName: "User", atStage: "New" },
+      { at: "2026-10-15T09:06:11.008Z", byId: null, type: "reopened", byName: "User" }
+    ];
+    await prisma.enquiry.updateMany({
+      where: { enquiryNumber: 'DF_ENQ_15102026_02' },
+      data: { stage: 'New', outcome: 'Open', history: originalHistory }
+    }).catch(() => {});
+  });
+
   after(async () => {
     await prisma.$disconnect();
   });

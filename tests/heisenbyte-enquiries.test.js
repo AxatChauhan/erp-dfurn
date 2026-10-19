@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 let authCookieHeader = '';
 let testClientId = null;

@@ -162,11 +162,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }, { status: 409 });
     }
 
-    // Cascade delete related records
-    await prisma.enquiryItem.deleteMany({ where: { enquiryId: id } });
-    await prisma.communicationLog.deleteMany({ where: { enquiryId: id } });
-    await prisma.enquiryFile.deleteMany({ where: { enquiryId: id } });
-    await prisma.enquiry.delete({ where: { id } });
+    // Cascade delete related records atomically
+    await prisma.$transaction(async (tx) => {
+      await tx.enquiryItem.deleteMany({ where: { enquiryId: id } });
+      await tx.communicationLog.deleteMany({ where: { enquiryId: id } });
+      await tx.enquiryFile.deleteMany({ where: { enquiryId: id } });
+      await tx.enquiry.delete({ where: { id } });
+    });
 
     return NextResponse.json({ success: true, message: 'Enquiry deleted successfully' });
   } catch (error: any) {

@@ -14,6 +14,8 @@ model User {
   username  String   @unique
   password  String   // In a real app, hash this!
   role              String    @default("SALES") // SUPER_ADMIN, SALES, MANAGER, etc.
+  employeeId        String?   @unique
+  employee          Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   enteredEnquiries  Enquiry[] @relation("EnteredByUser")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -364,6 +366,7 @@ model Employee {
   punches               AttendancePunch[]
   monthlyEntries        MonthlyAttendance[]
   salesEnquiries        Enquiry[]           @relation("SalespersonEnquiries")
+  user                  User?
   
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt

@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { getAuthenticatedSession } from '@/lib/auth';
 import { readinessOf, nextQuoteNumber, followupInfo, versionLabelOf, normalizeQuoteStatus } from '@/lib/quotations/quoteService';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const session = await getAuthenticatedSession(req);
     const cookieStore = await cookies();
-    const userId = cookieStore.get('user_id')?.value || null;
-    const userName = cookieStore.get('user_name')?.value || 'Admin';
+    const userId = session?.userId || cookieStore.get('user_id')?.value || null;
+    const userName = session?.name || cookieStore.get('user_name')?.value || 'Admin';
+    const userRole = session?.role || cookieStore.get('user_role')?.value || 'SALES';
 
     const body = await req.json();
     const { action } = body;
@@ -96,6 +99,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
 
       case 'APPROVE': {
+        if (userRole !== 'SUPER_ADMIN') {
+          return NextResponse.json({ error: 'Forbidden: Only Super Admin can approve quotations' }, { status: 403 });
+        }
         if (currentStatus !== 'Admin Approval Required') {
           return NextResponse.json({ error: 'Quote is not awaiting approval' }, { status: 400 });
         }
@@ -113,6 +119,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       case 'REJECT_APPROVAL':
       case 'REJECT': {
+        if (userRole !== 'SUPER_ADMIN') {
+          return NextResponse.json({ error: 'Forbidden: Only Super Admin can reject quotations' }, { status: 403 });
+        }
         newStatus = 'Not Approved';
         break;
       }

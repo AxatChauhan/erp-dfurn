@@ -23,29 +23,26 @@ function modeOf(mode?: string | null, type?: string | null): BusinessMode {
  * Uses indexed boundary seeks instead of scanning all rows in the database.
  */
 export async function generateNextClientCode(mode: BusinessMode): Promise<string> {
-  const clients = await prisma.client.findMany({
-    select: { clientCode: true },
+  const highest = await prisma.client.findFirst({
+    where: { clientCode: { startsWith: `DF/C/${mode}/` } },
+    orderBy: { clientCode: 'desc' },
+    select: { clientCode: true }
   });
 
   let maxSeq = 0;
-  for (const c of clients) {
-    if (!c.clientCode) continue;
-    const match = c.clientCode.match(/(\d+)$/);
-    if (match) {
-      const num = parseInt(match[1], 10);
-      if (!isNaN(num) && num > maxSeq) {
-        maxSeq = num;
-      }
-    }
+  if (highest?.clientCode) {
+    const match = highest.clientCode.match(/(\d+)$/);
+    if (match) maxSeq = parseInt(match[1], 10) || 0;
   }
 
   let nextSeq = maxSeq + 1;
-  const existingCodes = new Set(clients.map(c => c.clientCode).filter(Boolean));
   while (true) {
     const candidate = `DF/C/${mode}/${String(nextSeq).padStart(5, '0')}`;
-    if (!existingCodes.has(candidate)) {
-      return candidate;
-    }
+    const exists = await prisma.client.findUnique({
+      where: { clientCode: candidate },
+      select: { id: true }
+    });
+    if (!exists) return candidate;
     nextSeq++;
   }
 }
@@ -383,24 +380,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'At least one valid phone number is required' }, { status: 400 });
     }
 
-    // Targeted duplicate check in < 2ms (instead of scanning all clients)
-    const existingClients = await prisma.client.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, clientCode: true, phones: true },
-      take: 200,
-    });
+    // Targeted duplicate check across all active clients via direct SQL query (eliminates 200 limit)
+    const duplicateMatches = await prisma.$queryRawUnsafe<Array<{ id: string; name: string; clientCode: string | null }>>(`
+      SELECT id, name, "clientCode"
+      FROM "Client"
+      WHERE "isActive" = true
+        AND "phones" IS NOT NULL
+        AND "phones"::jsonb ?| $1::text[]
+      LIMIT 1;
+    `, normalizedPhones);
 
-    for (const ex of existingClients) {
-      const exPhones = Array.isArray(ex.phones) ? (ex.phones as string[]) : [];
-      const conflict = normalizedPhones.find((np) => exPhones.includes(np));
-      if (conflict) {
-        return NextResponse.json(
-          {
-            error: `Phone number ${conflict} is already registered to existing client "${ex.name}" (${ex.clientCode || 'ID: ' + ex.id})`,
-          },
-          { status: 409 }
-        );
-      }
+    if (duplicateMatches && duplicateMatches.length > 0) {
+      const match = duplicateMatches[0];
+      return NextResponse.json(
+        {
+          error: `Phone number is already registered to existing client "${match.name}" (${match.clientCode || 'ID: ' + match.id})`,
+        },
+        { status: 409 }
+      );
     }
 
     // Validate emails
@@ -431,31 +428,45 @@ export async function POST(req: NextRequest) {
       isBilling: a.isBilling ?? i === 0,
     }));
 
-    // Generate code atomically in < 2ms
-    const clientCode = await generateNextClientCode(businessMode);
+    // Generate code and insert atomically with retry loop on concurrent collision
     const displayName = type === 'Business' ? companyName || name : name;
+    let newClient: any = null;
+    let attempts = 0;
 
-    const newClient = await prisma.client.create({
-      data: {
-        clientCode,
-        clientType: type,
-        businessMode,
-        name: displayName,
-        companyName: type === 'Business' ? companyName || name : null,
-        contactPerson: type === 'Business' ? contactPerson || null : null,
-        phones: normalizedPhones,
-        phoneDetails,
-        emails,
-        addresses,
-        country: countryObj.name,
-        countryIso2: countryObj.iso2,
-        sourceCategoryId: body.sourceCategoryId || null,
-        sourceName: String(body.sourceName || '').trim() || null,
-        taxId: gstin || null,
-        pendingValidation: false,
-        validationIssues: [],
-      },
-    });
+    while (attempts < 3) {
+      try {
+        const clientCode = await generateNextClientCode(businessMode);
+        newClient = await prisma.client.create({
+          data: {
+            clientCode,
+            clientType: type,
+            businessMode,
+            name: displayName,
+            companyName: type === 'Business' ? companyName || name : null,
+            contactPerson: type === 'Business' ? contactPerson || null : null,
+            phones: normalizedPhones,
+            phoneDetails,
+            emails,
+            addresses,
+            country: countryObj.name,
+            countryIso2: countryObj.iso2,
+            sourceCategoryId: body.sourceCategoryId || null,
+            sourceName: String(body.sourceName || '').trim() || null,
+            taxId: gstin || null,
+            pendingValidation: false,
+            validationIssues: [],
+          },
+        });
+        break;
+      } catch (err: any) {
+        if (err.code === 'P2002' && (err.meta?.target?.includes('clientCode') || err.message?.includes('clientCode'))) {
+          attempts++;
+          await new Promise(r => setTimeout(r, 15 * attempts));
+        } else {
+          throw err;
+        }
+      }
+    }
 
     // Invalidate KPI micro-cache and Next.js edge cache so counts and list update immediately
     invalidateClientKpiCache();

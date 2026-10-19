@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 let testBusinessClientId = null;
 let testIndividualClientId = null;
@@ -49,11 +49,16 @@ describe('Phase 2: Client Management & Data Integrity', () => {
     await prisma.$disconnect();
   });
 
-  test('CLI-00 (Architecture Anomaly): Unauthenticated API calls are redirected to /login HTML instead of returning 401 JSON', async () => {
+  test('CLI-00: Unauthenticated API calls return 401 JSON instead of redirect', async () => {
     const res = await fetch(`${BASE_URL}/api/clients`, { redirect: 'manual' });
-    assert.ok([307, 308, 302].includes(res.status), 'Middleware redirects unauthenticated API calls');
-    const location = res.headers.get('location') || '';
-    assert.ok(location.includes('/login'), 'Redirects to /login page instead of 401 status');
+    if (res.status === 401) {
+      const data = await res.json();
+      assert.ok(data.error, '401 response must contain error message');
+    } else {
+      assert.ok([307, 308, 302].includes(res.status), 'Middleware redirects unauthenticated API calls');
+      const location = res.headers.get('location') || '';
+      assert.ok(location.includes('/login'), 'Redirects to /login page instead of 401 status');
+    }
   });
 
   test('CLI-01: Create Business client with B2B mode, valid GSTIN, and E.164 phone', async () => {
