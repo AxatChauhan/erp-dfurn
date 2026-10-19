@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { connection } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -13,7 +14,30 @@ import {
   CalendarCheck
 } from 'lucide-react';
 
-export default async function DashboardPage() {
+function DashboardKpiSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div 
+          key={i} 
+          className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs animate-pulse"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-gray-100" />
+            <div className="w-12 h-3.5 bg-gray-100 rounded" />
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="w-16 h-7 bg-gray-200 rounded" />
+            <div className="w-28 h-3.5 bg-gray-100 rounded" />
+            <div className="w-32 h-3 bg-gray-100 rounded mt-2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function DashboardKpiCards() {
   await connection();
 
   // Parallel fetch counts for live dashboard overview
@@ -34,8 +58,102 @@ export default async function DashboardPage() {
   ]);
 
   return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Enquiries Card */}
+      <Link 
+        href="/enquiries"
+        className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer block"
+      >
+        <div className="flex items-center justify-between">
+          <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+            <TrendingUp size={20} />
+          </div>
+          <span className="text-xs font-bold text-gray-400 group-hover:text-orange-600 flex items-center gap-1 transition-colors">
+            View <ArrowRight size={13} />
+          </span>
+        </div>
+        <div className="mt-4">
+          <div className="text-2xl font-black text-gray-900 tracking-tight">{enquiryCount}</div>
+          <div className="text-xs font-semibold text-gray-600 mt-0.5">Total Enquiries</div>
+          <div className="text-[11px] text-orange-600 font-bold mt-2 flex items-center gap-1">
+            <Clock size={12} /> {openEnquiryCount} Active Open Leads
+          </div>
+        </div>
+      </Link>
+
+      {/* Quotations Card */}
+      <Link 
+        href="/quotations"
+        className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer block"
+      >
+        <div className="flex items-center justify-between">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+            <FileText size={20} />
+          </div>
+          <span className="text-xs font-bold text-gray-400 group-hover:text-amber-600 flex items-center gap-1 transition-colors">
+            View <ArrowRight size={13} />
+          </span>
+        </div>
+        <div className="mt-4">
+          <div className="text-2xl font-black text-gray-900 tracking-tight">{quotationCount}</div>
+          <div className="text-xs font-semibold text-gray-600 mt-0.5">Quotations Generated</div>
+          <div className="text-[11px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+            <CheckCircle2 size={12} /> {approvedQuotationCount} Approved Estimates
+          </div>
+        </div>
+      </Link>
+
+      {/* Clients Card */}
+      <Link 
+        href="/clients"
+        className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer block"
+      >
+        <div className="flex items-center justify-between">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <Building2 size={20} />
+          </div>
+          <span className="text-xs font-bold text-gray-400 group-hover:text-blue-600 flex items-center gap-1 transition-colors">
+            View <ArrowRight size={13} />
+          </span>
+        </div>
+        <div className="mt-4">
+          <div className="text-2xl font-black text-gray-900 tracking-tight">{clientCount}</div>
+          <div className="text-xs font-semibold text-gray-600 mt-0.5">Client Accounts</div>
+          <div className="text-[11px] text-blue-600 font-bold mt-2">
+            B2B, B2B2C & Retail Directory
+          </div>
+        </div>
+      </Link>
+
+      {/* Factory / HRM Card */}
+      <Link 
+        href="/hrm/attendance"
+        className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer block"
+      >
+        <div className="flex items-center justify-between">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <Briefcase size={20} />
+          </div>
+          <span className="text-xs font-bold text-gray-400 group-hover:text-indigo-600 flex items-center gap-1 transition-colors">
+            View <ArrowRight size={13} />
+          </span>
+        </div>
+        <div className="mt-4">
+          <div className="text-2xl font-black text-gray-900 tracking-tight">{employeeCount}</div>
+          <div className="text-xs font-semibold text-gray-600 mt-0.5">Workforce Employees</div>
+          <div className="text-[11px] text-indigo-600 font-bold mt-2 flex items-center gap-1">
+            <CalendarCheck size={12} /> Live Factory Attendance
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
-      {/* WELCOME BANNER */}
+      {/* WELCOME BANNER (Instant Shell) */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-orange-600 uppercase tracking-wider bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
@@ -56,98 +174,12 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* METRIC KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Enquiries Card */}
-        <Link 
-          href="/enquiries"
-          className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer block"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
-              <TrendingUp size={20} />
-            </div>
-            <span className="text-xs font-bold text-gray-400 group-hover:text-orange-600 flex items-center gap-1 transition-colors">
-              View <ArrowRight size={13} />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-2xl font-black text-gray-900 tracking-tight">{enquiryCount}</div>
-            <div className="text-xs font-semibold text-gray-600 mt-0.5">Total Enquiries</div>
-            <div className="text-[11px] text-orange-600 font-bold mt-2 flex items-center gap-1">
-              <Clock size={12} /> {openEnquiryCount} Active Open Leads
-            </div>
-          </div>
-        </Link>
+      {/* METRIC KPI CARDS (Streamed via Suspense) */}
+      <Suspense fallback={<DashboardKpiSkeleton />}>
+        <DashboardKpiCards />
+      </Suspense>
 
-        {/* Quotations Card */}
-        <Link 
-          href="/quotations"
-          className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer block"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-              <FileText size={20} />
-            </div>
-            <span className="text-xs font-bold text-gray-400 group-hover:text-amber-600 flex items-center gap-1 transition-colors">
-              View <ArrowRight size={13} />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-2xl font-black text-gray-900 tracking-tight">{quotationCount}</div>
-            <div className="text-xs font-semibold text-gray-600 mt-0.5">Quotations Generated</div>
-            <div className="text-[11px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
-              <CheckCircle2 size={12} /> {approvedQuotationCount} Approved Estimates
-            </div>
-          </div>
-        </Link>
-
-        {/* Clients Card */}
-        <Link 
-          href="/clients"
-          className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer block"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-              <Building2 size={20} />
-            </div>
-            <span className="text-xs font-bold text-gray-400 group-hover:text-blue-600 flex items-center gap-1 transition-colors">
-              View <ArrowRight size={13} />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-2xl font-black text-gray-900 tracking-tight">{clientCount}</div>
-            <div className="text-xs font-semibold text-gray-600 mt-0.5">Client Accounts</div>
-            <div className="text-[11px] text-blue-600 font-bold mt-2">
-              B2B, B2B2C & Retail Directory
-            </div>
-          </div>
-        </Link>
-
-        {/* Factory / HRM Card */}
-        <Link 
-          href="/hrm/attendance"
-          className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer block"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-              <Briefcase size={20} />
-            </div>
-            <span className="text-xs font-bold text-gray-400 group-hover:text-indigo-600 flex items-center gap-1 transition-colors">
-              View <ArrowRight size={13} />
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-2xl font-black text-gray-900 tracking-tight">{employeeCount}</div>
-            <div className="text-xs font-semibold text-gray-600 mt-0.5">Workforce Employees</div>
-            <div className="text-[11px] text-indigo-600 font-bold mt-2 flex items-center gap-1">
-              <CalendarCheck size={12} /> Live Factory Attendance
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* QUICK MODULE ACCESS TILES */}
+      {/* QUICK MODULE ACCESS TILES (Instant Shell) */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200/80 shadow-xs">
         <h3 className="text-base font-bold text-gray-900 tracking-tight mb-4">
           Quick Workspaces
