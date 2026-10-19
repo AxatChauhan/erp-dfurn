@@ -29,10 +29,12 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   const activePath = pendingPath || pathname;
   const isSalesActive = activePath.includes('enquiries') || activePath.includes('quotations') || activePath.includes('clients');
   const isHrmActive = activePath.includes('/hrm');
+  const isProductsActive = activePath.includes('/products');
 
   // Accordion state: keep active section open by default
-  const [openSection, setOpenSection] = useState<'sales' | 'hrm' | null>(() => {
+  const [openSection, setOpenSection] = useState<'sales' | 'hrm' | 'products' | null>(() => {
     if (pathname.includes('/hrm')) return 'hrm';
+    if (pathname.includes('/products')) return 'products';
     return 'sales';
   });
 
@@ -40,6 +42,8 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   useEffect(() => {
     if (activePath.includes('/hrm')) {
       setOpenSection('hrm');
+    } else if (activePath.includes('/products')) {
+      setOpenSection('products');
     } else if (activePath.includes('enquiries') || activePath.includes('quotations') || activePath.includes('clients')) {
       setOpenSection('sales');
     }
@@ -48,6 +52,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   const handleNavClick = (href: string) => {
     setPendingPath(href);
     if (href.includes('/hrm')) setOpenSection('hrm');
+    else if (href.includes('/products')) setOpenSection('products');
     else if (href.includes('enquiries') || href.includes('quotations') || href.includes('clients')) setOpenSection('sales');
   };
 
@@ -280,18 +285,65 @@ export default function Sidebar({ userRole }: { userRole: string }) {
             )}
           </div>
 
-          {/* PRODUCTS */}
-          <div 
-            title="Products"
-            className="w-full flex items-center px-4 py-1.5 text-gray-400 cursor-default group"
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-gray-400 group-hover:bg-gray-50">
-              <Layers size={20} />
-            </div>
-            {isHovered && (
-              <div className="flex items-center justify-between flex-1 min-w-0 pl-3 pr-1">
-                <span className="font-bold text-xs uppercase tracking-wider text-gray-400 truncate">PRODUCTS</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">Soon</span>
+          {/* PRODUCTS SECTION */}
+          <div>
+            <button 
+              type="button"
+              onClick={() => setOpenSection(openSection === 'products' ? null : 'products')}
+              title="Products & Engineering"
+              className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
+                isProductsActive ? 'text-orange-600' : 'text-gray-700'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                isProductsActive 
+                  ? 'bg-orange-500 text-white shadow-xs' 
+                  : 'text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-900'
+              }`}>
+                <Layers size={20} />
+              </div>
+              {isHovered && (
+                <div className="flex items-center justify-between flex-1 min-w-0 pl-3 pr-1">
+                  <span className="font-bold text-xs uppercase tracking-wider text-orange-600 truncate">
+                    PRODUCTS
+                  </span>
+                  {openSection === 'products' ? (
+                    <ChevronDown size={14} className="text-orange-500 shrink-0" />
+                  ) : (
+                    <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                  )}
+                </div>
+              )}
+            </button>
+            
+            {isHovered && openSection === 'products' && (
+              <div className="flex flex-col mt-0.5 mb-1.5 pl-[64px] pr-3 gap-0.5 whitespace-nowrap">
+                <Link 
+                  href="/products" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/products')}
+                  onClick={() => handleNavClick('/products')}
+                  className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
+                    activePath === '/products' 
+                      ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold' 
+                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  Catalogue
+                </Link>
+                <Link 
+                  href="/products/hierarchy" 
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/products/hierarchy')}
+                  onClick={() => handleNavClick('/products/hierarchy')}
+                  className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
+                    activePath.includes('/products/hierarchy') 
+                      ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold' 
+                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  Hierarchy
+                </Link>
               </div>
             )}
           </div>

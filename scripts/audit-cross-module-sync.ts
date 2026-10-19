@@ -130,7 +130,7 @@ async function runAudit() {
     if (e.brief && e.brief.includes('—')) emDashViolations++;
     if (e.notes && e.notes.includes('—')) emDashViolations++;
     for (const item of e.items) {
-      if (item.dimensions && !/L\s+\d+.*B\s+\d+.*H\s+\d+.*mm/i.test(item.dimensions)) {
+      if (item.expectedDimensions && !/L\s+\d+.*B\s+\d+.*H\s+\d+.*mm/i.test(item.expectedDimensions)) {
         dimensionViolations++;
       }
     }

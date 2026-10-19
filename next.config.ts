@@ -12,6 +12,19 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  images: {
+    qualities: [75, 80, 85],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'mwvbjdifhphfpvrnqqhs.supabase.co',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

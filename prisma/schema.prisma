@@ -194,12 +194,28 @@ model LostReason {
   createdAt DateTime @default(now())
 }
 
+model Segment {
+  id         String     @id @default(uuid())
+  name       String     @unique
+  code       String     @unique
+  categories Category[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @default(now()) @updatedAt
+}
+
 model Category {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  code      String?   @unique
-  enquiries Enquiry[]
-  createdAt DateTime  @default(now())
+  id             String          @id @default(uuid())
+  name           String          @unique
+  code           String?         @unique
+  segmentId      String?
+  segment        Segment?        @relation(fields: [segmentId], references: [id], onDelete: Restrict)
+  subCategories  SubCategory[]
+  masterProducts MasterProduct[]
+  enquiries      Enquiry[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+
+  @@index([segmentId])
 }
 
 model Quotation {
@@ -331,6 +347,7 @@ model Department {
   id          String     @id @default(uuid())
   name        String     @unique // e.g., "Carpentry", "Edge Banding", "Finishing & Polish", "Assembly", "Office & Sales"
   code        String?    // e.g., "DEP-CARP"
+  isProduction Boolean   @default(true) // Production departments configure Process Charts; Office belongs to HRM
   employees   Employee[]
   createdAt   DateTime   @default(now())
 }
@@ -446,5 +463,136 @@ model JobOrder {
   @@index([clientId])
   @@index([status])
   @@index([orderDate(sort: Desc)])
+}
+
+// -------------------------------------------------------------
+// PRODUCTS MODULE: HIERARCHY, MASTER PRODUCTS, VARIANTS & CATALOGUES
+// -------------------------------------------------------------
+
+model SubCategory {
+  id             String          @id @default(uuid())
+  name           String
+  code           String
+  categoryId     String
+  category       Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  masterProducts MasterProduct[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+
+  @@unique([categoryId, code])
+  @@index([categoryId])
+}
+
+model MasterProduct {
+  id                   String        @id @default(uuid())
+  code                 String        @unique // e.g. WKSPC-PEDU-AMB
+  name                 String
+  categoryId           String
+  category             Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subCategoryId        String
+  subCategory          SubCategory   @relation(fields: [subCategoryId], references: [id], onDelete: Restrict)
+  departmentIds        String[]      // Department IDs e.g. ["dep-1", "dep-2"]
+  
+  specifications       Json          // Array of { key, kind: 'fixed' | 'customizable', value?, catalogueId?, defaultEntryId? }
+  nakedDimensions      Json          // { l: number, w: number, h: number } in mm (L B H)
+  boxDimensions        Json          // { l: number, w: number, h: number } in mm (L B H)
+  defaultDeliveryMode  String        // 'RTA' | 'Pre-assembled'
+  defaultCreationMode  String        // 'In-house' | 'Outsource'
+  unitOfMeasurement    String        // 'Nos', 'Sq.Ft', 'R.Ft', 'kg'
+  baseSellingRate      Float
+  grossMarginTargetPct Float         @default(30.0)
+  leadTimeDays         Int?
+  moq                  Int?          @default(1)
+  
+  images               Json?         // Array of { slot: string, url: string, name: string }
+  documents            Json?         // Array of { slot: string, url: string, name: string }
+  thumbnail            String?       // Low-res thumbnail or base64
+  
+  processChart         Json?         // { [deptId]: string[] }
+  bom                  Json?         // { configured: boolean, sections: any }
+  packingList          Json?         // { configured: boolean, boxes: any[] }
+  
+  variants             Variant[]
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @default(now()) @updatedAt
+
+  @@index([categoryId])
+  @@index([subCategoryId])
+}
+
+model Variant {
+  id                   String             @id @default(uuid())
+  code                 String             @unique // e.g. WKSPC-PEDU-AMB-001
+  name                 String
+  masterProductId      String
+  masterProduct        MasterProduct      @relation(fields: [masterProductId], references: [id], onDelete: Restrict)
+  departmentIds        String[]
+  
+  specifications       Json
+  nakedDimensions      Json               // { l: number, w: number, h: number } in mm
+  boxDimensions        Json               // { l: number, w: number, h: number } in mm
+  defaultDeliveryMode  String
+  defaultCreationMode  String
+  unitOfMeasurement    String
+  baseSellingRate      Float
+  leadTimeDays         Int?
+  moq                  Int?               @default(1)
+  
+  images               Json?
+  documents            Json?
+  qrCodeUrl            String?
+  thumbnail            String?
+  
+  processChart         Json?
+  bom                  Json?
+  packingList          Json?
+  costing              Json?              // { materialCost, labourCost, energyCost, overheadsPct, commissionPct, totalCost, marginPct }
+  
+  semiFinishedGoods    SemiFinishedGood[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @default(now()) @updatedAt
+
+  @@index([masterProductId])
+}
+
+model StandardCatalogue {
+  id          String           @id @default(uuid())
+  name        String           @unique // e.g. "Powder Coating", "Laminates"
+  description String?
+  facets      Json             // [{ key: string, name: string, values: string[] }]
+  entries     CatalogueEntry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+}
+
+model CatalogueEntry {
+  id          String            @id @default(uuid())
+  catalogueId String
+  catalogue   StandardCatalogue @relation(fields: [catalogueId], references: [id], onDelete: Cascade)
+  name        String
+  code        String?
+  swatch      String?           // Hex color e.g. #RRGGBB
+  imageUrl    String?
+  attributes  Json?             // { [facetKey]: string }
+  materialIds String[]          // Linked raw material inventory codes/IDs
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
+
+  @@index([catalogueId])
+}
+
+model SemiFinishedGood {
+  id        String   @id @default(uuid())
+  code      String   @unique // e.g. WKSPC-PEDU-AMB-001-P01
+  name      String
+  variantId String
+  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  sourcing  String   @default("in-house") // 'in-house', 'outsourced', 'both'
+  stockQty  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([variantId])
 }
 

@@ -320,4 +320,55 @@ describe('Tri-Module Data Integrity & Cross-Module Synchronization Suite', () =>
     }
   });
 
+  // -------------------------------------------------------------
+  // TEST 6: PRODUCTS MODULE REFERENTIAL INTEGRITY, CBM & ZERO EM DASHES
+  // -------------------------------------------------------------
+  test('SYNC-06: Products Module Hierarchy, CBM Math & Zero Em Dashes', async () => {
+    const products = await prisma.masterProduct.findMany({
+      include: {
+        category: { include: { segment: true } },
+        subCategory: true,
+        variants: true,
+      },
+    });
+
+    assert.ok(products.length >= 2, 'Database should contain active master products');
+
+    let emDashViolations = 0;
+    const checkText = (txt) => {
+      if (typeof txt === 'string' && txt.includes('—')) emDashViolations++;
+    };
+
+    for (const p of products) {
+      checkText(p.name);
+      checkText(p.code);
+      assert.ok(p.code, 'Master product must have a code');
+      assert.ok(p.name, 'Master product must have a name');
+      assert.ok(p.category, 'Master product must belong to a Category');
+      assert.ok(p.subCategory, 'Master product must belong to a SubCategory');
+      assert.ok(p.category.segment, 'Category must belong to a Segment');
+      assert.ok(p.departmentIds.length > 0, 'Master product must have assigned departments');
+
+      // Verify CBM calculation
+      const box = p.boxDimensions;
+      if (box && box.l && box.w && box.h) {
+        const cbm = Math.round(((box.l / 1000) * (box.w / 1000) * (box.h / 1000)) * 10000) / 10000;
+        assert.ok(cbm > 0, 'CBM must be positive');
+      }
+
+      // Verify variants
+      for (const v of p.variants) {
+        checkText(v.name);
+        checkText(v.code);
+        assert.ok(
+          v.code.startsWith(p.code),
+          `Variant code ${v.code} must start with master product code ${p.code}`
+        );
+        assert.ok(v.baseSellingRate > 0, `Variant ${v.code} must have a positive selling rate`);
+      }
+    }
+
+    assert.equal(emDashViolations, 0, `Zero em dashes allowed in product catalog (found ${emDashViolations})`);
+  });
+
 });

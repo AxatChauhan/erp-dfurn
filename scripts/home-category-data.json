@@ -1,0 +1,782 @@
+{
+  "responseData": [
+    {
+      "mainCategoryId": 1,
+      "mainCategoryName": "HOSPITALITY",
+      "slug": "hospitality",
+      "masterCategories": [
+        {
+          "productCombos": [
+            {
+              "comboId": 1,
+              "comboName": "Wooden Sofa Set with Center Table",
+              "description": "Wooden Sofa Set with Center Table for Living Room | Wooden Sofa Set | 6 Seater Sofa Set | Solid Sheesham Wood Sofa Set for Living Room Furniture (3+2+1 Brown,Natural Teak Finish)",
+              "active": true,
+              "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875543187204638_combo-1.jpg",
+              "subCategoryId": 3,
+              "slug": null,
+              "images": [
+                {
+                  "imageId": 1,
+                  "imageName": "638875543320185284_combo-1-3.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875543320185284_combo-1-3.jpg",
+                  "comboId": 1
+                },
+                {
+                  "imageId": 2,
+                  "imageName": "638875543320185284_combo-1-2.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875543320185284_combo-1-2.jpg",
+                  "comboId": 1
+                },
+                {
+                  "imageId": 3,
+                  "imageName": "638875543320185284_combo-1-1.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875543320185284_combo-1-1.jpg",
+                  "comboId": 1
+                },
+                {
+                  "imageId": 4,
+                  "imageName": "638875543320185284_combo-1.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875543320185284_combo-1.jpg",
+                  "comboId": 1
+                }
+              ]
+            },
+            {
+              "comboId": 2,
+              "comboName": "Seating Chair and Table Set Outdoor",
+              "description": "Seating Chair and Table Set Outdoor Balcony Garden Coffee Table Set Furniture with 1 Table and 4 Chairs Set (Honey)",
+              "active": true,
+              "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875545575942538_51TThH47SGL (1).jpg",
+              "subCategoryId": 3,
+              "slug": null,
+              "images": [
+                {
+                  "imageId": 5,
+                  "imageName": "638875545703799479_31ko4v-dsAL.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875545703799479_31ko4v-dsAL.jpg",
+                  "comboId": 2
+                },
+                {
+                  "imageId": 6,
+                  "imageName": "638875545703799479_413M72NoEpL.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875545703799479_413M72NoEpL.jpg",
+                  "comboId": 2
+                },
+                {
+                  "imageId": 7,
+                  "imageName": "638875545703799479_31FDVqpWufL.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875545703799479_31FDVqpWufL.jpg",
+                  "comboId": 2
+                },
+                {
+                  "imageId": 8,
+                  "imageName": "638875545703799479_51TThH47SGL (1).jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875545703799479_51TThH47SGL (1).jpg",
+                  "comboId": 2
+                }
+              ]
+            }
+          ],
+          "categories": [
+            {
+              "categoryId": 25,
+              "categoryName": "BED BASES",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "bed-bases"
+            },
+            {
+              "categoryId": 26,
+              "categoryName": "DESK",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 2,
+              "categorySlug": "desks"
+            },
+            {
+              "categoryId": 27,
+              "categoryName": "HEADBOARDS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 4,
+              "categorySlug": "headboards"
+            },
+            {
+              "categoryId": 28,
+              "categoryName": "HANGER UNITS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 3,
+              "categorySlug": "hanger-units"
+            },
+            {
+              "categoryId": 29,
+              "categoryName": "KITCHEN OVERHEAD UNITS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 5,
+              "categorySlug": "kitchen-overhead-units"
+            },
+            {
+              "categoryId": 30,
+              "categoryName": "LUGGAGE RACKS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 6,
+              "categorySlug": "luggage-racks"
+            },
+            {
+              "categoryId": 31,
+              "categoryName": "MEDIA PANELS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 7,
+              "categorySlug": "media-panels"
+            },
+            {
+              "categoryId": 32,
+              "categoryName": "MICRO-COMBO FRIDGE UNITS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 8,
+              "categorySlug": "micro-combo-fridge-units"
+            },
+            {
+              "categoryId": 33,
+              "categoryName": "NIGHT STANDS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 9,
+              "categorySlug": "night-stands"
+            },
+            {
+              "categoryId": 34,
+              "categoryName": "VANITY UNITS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 10,
+              "categorySlug": "vanity-units"
+            },
+            {
+              "categoryId": 35,
+              "categoryName": "WALL GUARDS",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 11,
+              "categorySlug": "wall-guards"
+            },
+            {
+              "categoryId": 64,
+              "categoryName": "CLOSET WITH MICRO COMBO",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 1,
+              "categorySlug": "closet-with-micro-combo"
+            },
+            {
+              "categoryId": 79,
+              "categoryName": "SOFA SET",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "sofa-set"
+            },
+            {
+              "categoryId": 87,
+              "categoryName": "LEISURE CHAIR",
+              "masterCategoryID": 3,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "leisure-chair"
+            }
+          ],
+          "masterCategoryID": 3,
+          "masterCategoryName": "Hospitality",
+          "index": 2,
+          "imageUrl": "https://api.dfurn.in/Images/MasterCategory/638630096538181141Hospitality_furniture.jpg",
+          "imageName": "638630096538181141Hospitality_furniture.jpg",
+          "active": true,
+          "masterCategorySlug": "hospitality",
+          "createdDate": "2026-10-19T09:25:47.7406592+00:00",
+          "mainCategoryId": 1
+        }
+      ]
+    },
+    {
+      "mainCategoryId": 2,
+      "mainCategoryName": "COMMERCIAL",
+      "slug": "commercial",
+      "masterCategories": [
+        {
+          "productCombos": [
+            {
+              "comboId": 3,
+              "comboName": "Sheesham Wooden 5 Seater Sofa Set",
+              "description": "Sheesham Wooden 5 Seater Sofa Set for Living Room | Solid Wood Sofa | Rosewood Sofa Set for Home & Office | Lounge (Natural, 3+1+1 Seater)",
+              "active": true,
+              "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875547420600967_71FqJuQjeML._SX679_.jpg",
+              "subCategoryId": 8,
+              "slug": null,
+              "images": [
+                {
+                  "imageId": 9,
+                  "imageName": "638875548089423225_61jEygY3kZL._SL1500_.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875548089423225_61jEygY3kZL._SL1500_.jpg",
+                  "comboId": 3
+                },
+                {
+                  "imageId": 10,
+                  "imageName": "638875548089423225_71wW5S7EN5L._SL1500_.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875548089423225_71wW5S7EN5L._SL1500_.jpg",
+                  "comboId": 3
+                },
+                {
+                  "imageId": 12,
+                  "imageName": "638875548089423225_71VHDAQmqDL._SX679_.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875548089423225_71VHDAQmqDL._SX679_.jpg",
+                  "comboId": 3
+                },
+                {
+                  "imageId": 14,
+                  "imageName": "638875548089423225_61i7rcvHcwL._SX679_.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875548089423225_61i7rcvHcwL._SX679_.jpg",
+                  "comboId": 3
+                },
+                {
+                  "imageId": 15,
+                  "imageName": "638875548089423225_71FqJuQjeML._SX679_.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875548089423225_71FqJuQjeML._SX679_.jpg",
+                  "comboId": 3
+                }
+              ]
+            },
+            {
+              "comboId": 4,
+              "comboName": "8 Seater RHS Fabric L Shape Sofa",
+              "description": "Adonia 8 Seater RHS Fabric L Shape Sofa Set with 1 Centre Table & 2 Puffy (Dark Blue- Light Grey Color) Visit the CASASTYLE Store",
+              "active": true,
+              "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875550283921787_61z9npjXfaL._SL1100_.jpg",
+              "subCategoryId": 8,
+              "slug": null,
+              "images": [
+                {
+                  "imageId": 18,
+                  "imageName": "638875549642808898_61z9npjXfaL._SL1100_.jpg",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875549642808898_61z9npjXfaL._SL1100_.jpg",
+                  "comboId": 4
+                },
+                {
+                  "imageId": 20,
+                  "imageName": "638875550458541595_image (1).png",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875550458541595_image (1).png",
+                  "comboId": 4
+                },
+                {
+                  "imageId": 22,
+                  "imageName": "638875550458697936_download.png",
+                  "imageUrl": "https://api.dfurn.in/Images/ProductCombos/638875550458697936_download.png",
+                  "comboId": 4
+                }
+              ]
+            }
+          ],
+          "categories": [
+            {
+              "categoryId": 1,
+              "categoryName": "OFFICE CHAIRS",
+              "masterCategoryID": 8,
+              "imageName": "638706785323014587Serene Seat (2).png",
+              "imageUrl": "https://api.dfurn.in/Images/Category/638706785323014587Serene Seat (2).png",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 2,
+              "categorySlug": "office-chairs"
+            },
+            {
+              "categoryId": 2,
+              "categoryName": "LOCKERS",
+              "masterCategoryID": 8,
+              "imageName": "6385322498056717631c.jpg",
+              "imageUrl": "https://api.dfurn.in/Images/Category/6385322498056717631c.jpg",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 6,
+              "categorySlug": "lockers"
+            },
+            {
+              "categoryId": 3,
+              "categoryName": "MOBILE COMPACTORS",
+              "masterCategoryID": 8,
+              "imageName": "638706786398464672DP.jpeg",
+              "imageUrl": "https://api.dfurn.in/Images/Category/638706786398464672DP.jpeg",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 8,
+              "categorySlug": "mobile-compactors"
+            },
+            {
+              "categoryId": 4,
+              "categoryName": "PEDESTAL UNITS",
+              "masterCategoryID": 8,
+              "imageName": "6387310838211061621a.jpg",
+              "imageUrl": "https://api.dfurn.in/Images/Category/6387310838211061621a.jpg",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "pedestal-units"
+            },
+            {
+              "categoryId": 6,
+              "categoryName": "EXECUTIVE DESKS",
+              "masterCategoryID": 8,
+              "imageName": "6387310819142481053200.jpg",
+              "imageUrl": "https://api.dfurn.in/Images/Category/6387310819142481053200.jpg",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 4,
+              "categorySlug": "executive-desks"
+            },
+            {
+              "categoryId": 7,
+              "categoryName": "STORAGE UNITS",
+              "masterCategoryID": 8,
+              "imageName": "6387310868556159763783.png",
+              "imageUrl": "https://api.dfurn.in/Images/Category/6387310868556159763783.png",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 1,
+              "categorySlug": "storage-units"
+            },
+            {
+              "categoryId": 8,
+              "categoryName": "WORKSTATIONS",
+              "masterCategoryID": 8,
+              "imageName": "638731087348157539Four Workstation Partition.413.png",
+              "imageUrl": "https://api.dfurn.in/Images/Category/638731087348157539Four Workstation Partition.413.png",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 5,
+              "categorySlug": "workstations"
+            },
+            {
+              "categoryId": 56,
+              "categoryName": "STAFF DESKS",
+              "masterCategoryID": 8,
+              "imageName": "6387310844601760641b.jpg",
+              "imageUrl": "https://api.dfurn.in/Images/Category/6387310844601760641b.jpg",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 10,
+              "categorySlug": "staff-desk"
+            },
+            {
+              "categoryId": 57,
+              "categoryName": "MAGAZINE RACK",
+              "masterCategoryID": 8,
+              "imageName": "6387310833445090744124.jpg",
+              "imageUrl": "https://api.dfurn.in/Images/Category/6387310833445090744124.jpg",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 7,
+              "categorySlug": "magazine-rack"
+            },
+            {
+              "categoryId": 77,
+              "categoryName": "LOUNGER SOFA",
+              "masterCategoryID": 8,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 3,
+              "categorySlug": "lounger-sofa"
+            },
+            {
+              "categoryId": 85,
+              "categoryName": "LOUNGE CHAIRS",
+              "masterCategoryID": 8,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "lounge-chairs"
+            }
+          ],
+          "masterCategoryID": 8,
+          "masterCategoryName": "Workspaces",
+          "index": 0,
+          "imageUrl": "https://api.dfurn.in/Images/MasterCategory/638785651024370905office.png",
+          "imageName": "638785651024370905office.png",
+          "active": true,
+          "masterCategorySlug": "workspaces",
+          "createdDate": "2026-10-19T09:25:47.7406592+00:00",
+          "mainCategoryId": 2
+        },
+        {
+          "productCombos": [],
+          "categories": [
+            {
+              "categoryId": 65,
+              "categoryName": "STUDENT DESKS",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "student-desks"
+            },
+            {
+              "categoryId": 66,
+              "categoryName": "TEACHER'S DESK",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 2,
+              "categorySlug": "teachers-desk"
+            },
+            {
+              "categoryId": 67,
+              "categoryName": "STORAGE CABINETS",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 3,
+              "categorySlug": "storage-cabinets"
+            },
+            {
+              "categoryId": 68,
+              "categoryName": "CHAIRS",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 1,
+              "categorySlug": "chairs"
+            },
+            {
+              "categoryId": 69,
+              "categoryName": "CHANGING ROOM LOCKERS",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "changing-room-lockers"
+            },
+            {
+              "categoryId": 72,
+              "categoryName": "AUDITORIUM CHAIR",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "auditorium-chair"
+            },
+            {
+              "categoryId": 73,
+              "categoryName": "LIBRARY BOOK RACKS",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "library-book-racks"
+            },
+            {
+              "categoryId": 76,
+              "categoryName": "OFFICE DESKS",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "office-desks"
+            },
+            {
+              "categoryId": 78,
+              "categoryName": "WAITING AREA SOFA",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "waiting-area-sofa"
+            },
+            {
+              "categoryId": 84,
+              "categoryName": "PODIUM",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "podium"
+            },
+            {
+              "categoryId": 86,
+              "categoryName": "ARMCHAIR",
+              "masterCategoryID": 15,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "armchair"
+            }
+          ],
+          "masterCategoryID": 15,
+          "masterCategoryName": "Educational Spaces",
+          "index": 1,
+          "imageUrl": "https://api.dfurn.in/Images/MasterCategory/638788008899375223Education Space.png",
+          "imageName": "638788008899375223Education Space.png",
+          "active": true,
+          "masterCategorySlug": "educational-spaces",
+          "createdDate": "2026-10-19T09:25:47.7406592+00:00",
+          "mainCategoryId": 2
+        },
+        {
+          "productCombos": [],
+          "categories": [],
+          "masterCategoryID": 16,
+          "masterCategoryName": "Hostels & PG",
+          "index": 0,
+          "imageUrl": "https://api.dfurn.in/Images/MasterCategory/639017774913548263_WhatsApp-Image-2022-06-13-at-11.34.15-PM-1024x766.jpeg",
+          "imageName": "639017774913548263_WhatsApp-Image-2022-06-13-at-11.34.15-PM-1024x766.jpeg",
+          "active": true,
+          "masterCategorySlug": "hostels-and-pg",
+          "createdDate": "2026-10-19T09:25:47.7406592+00:00",
+          "mainCategoryId": 2
+        },
+        {
+          "productCombos": [],
+          "categories": [],
+          "masterCategoryID": 17,
+          "masterCategoryName": "HOSPITALS",
+          "index": 0,
+          "imageUrl": null,
+          "imageName": null,
+          "active": true,
+          "masterCategorySlug": "hospitals",
+          "createdDate": "2026-10-19T09:25:47.7406592+00:00",
+          "mainCategoryId": 2
+        },
+        {
+          "productCombos": [],
+          "categories": [],
+          "masterCategoryID": 19,
+          "masterCategoryName": "Laboratory Furniture",
+          "index": 0,
+          "imageUrl": null,
+          "imageName": null,
+          "active": true,
+          "masterCategorySlug": "laboratory-furniture",
+          "createdDate": "2026-10-19T09:25:47.7406592+00:00",
+          "mainCategoryId": 2
+        }
+      ]
+    },
+    {
+      "mainCategoryId": 3,
+      "mainCategoryName": "RESIDENTIAL",
+      "slug": "residential",
+      "masterCategories": [
+        {
+          "productCombos": [],
+          "categories": [
+            {
+              "categoryId": 51,
+              "categoryName": "OUTDOOR CHAIRS",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 1,
+              "categorySlug": "outdoor-chairs"
+            },
+            {
+              "categoryId": 53,
+              "categoryName": "SOFAS",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "sofas"
+            },
+            {
+              "categoryId": 58,
+              "categoryName": "OUTDOOR SOFA",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 4,
+              "categorySlug": "outdoor-sofa"
+            },
+            {
+              "categoryId": 59,
+              "categoryName": "OUTDOOR SWING",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 5,
+              "categorySlug": "outdoor-swing"
+            },
+            {
+              "categoryId": 60,
+              "categoryName": "OUTDOOR TABLE",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 2,
+              "categorySlug": "outdoor-table"
+            },
+            {
+              "categoryId": 61,
+              "categoryName": "OUTDOOR LOUNGER",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 3,
+              "categorySlug": "outdoor-lounger"
+            },
+            {
+              "categoryId": 62,
+              "categoryName": "CANE FURNITURE",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 6,
+              "categorySlug": "cane-furniture"
+            },
+            {
+              "categoryId": 81,
+              "categoryName": "WARDROBES",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "wardrobes"
+            },
+            {
+              "categoryId": 82,
+              "categoryName": "COFFEE TABLES",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "coffee-tables"
+            },
+            {
+              "categoryId": 83,
+              "categoryName": "SHOE RACK",
+              "masterCategoryID": 14,
+              "imageName": "638993695981088409_shoesRackMetal.460.png",
+              "imageUrl": "https://api.dfurn.in/Images/Category/638993695981088409_shoesRackMetal.460.png",
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "shoe-rack"
+            },
+            {
+              "categoryId": 88,
+              "categoryName": "LOUNGE CHAIR",
+              "masterCategoryID": 14,
+              "imageName": null,
+              "imageUrl": null,
+              "isAvailable": false,
+              "createdDate": "0001-01-01T00:00:00",
+              "categoryIndex": 0,
+              "categorySlug": "lounge-chair"
+            }
+          ],
+          "masterCategoryID": 14,
+          "masterCategoryName": "RESIDENTIAL & OUTDOORS",
+          "index": 3,
+          "imageUrl": "https://api.dfurn.in/Images/MasterCategory/638788000869081515Category Image.png",
+          "imageName": "638788000869081515Category Image.png",
+          "active": true,
+          "masterCategorySlug": "residential-and-outdoors",
+          "createdDate": "2026-10-19T09:25:47.7563163+00:00",
+          "mainCategoryId": 3
+        }
+      ]
+    }
+  ],
+  "isSuccess": true,
+  "statusCode": 200,
+  "message": "Success"
+}
