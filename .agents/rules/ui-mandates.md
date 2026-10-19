@@ -13,8 +13,9 @@ trigger:
    - White: `#FFFFFF` for modal and card bodies.
    - Tri-state status colors: **Green (Done/Active) · Orange (In-Progress/Attention) · Red (Error/Hold/Lost)**. Never invent a fourth status color.
 
-2. **No Em Dashes (`—`) Rule**:
-   - Never use em dashes (`—`) in any user-facing text, placeholders, tooltips, or toast notifications.
+2. **No "Them" Dashes ("Em Dashes" / Unnecessary Hyphens) Rule**:
+   - The owner explicitly mandated: *"please remove them dashes, whole app, and a rule for the future."*
+   - Never use "them" dashes (`—`) in any user-facing text, placeholders, tooltips, or toast notifications.
    - For empty / null values, use an en dash `–`.
    - For value separation, use a dot `·` (e.g. `DF/C/B2B/00001 · India`).
 

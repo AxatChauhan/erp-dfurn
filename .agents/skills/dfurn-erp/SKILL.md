@@ -21,7 +21,8 @@ The business owner ("the sir") has tested and refined this ERP through multiple 
 1. **Design for the Least Adaptive User:**
    - The user has zero patience for clutter, dense spreadsheets, or tedious multi-step documentation.
    - Keep the UI ultra-minimalistic. The screen must show only what is essential for the immediate action.
-2. **No Em Dashes (`—`) Anywhere in User-Facing Text:**
+2. **No "Them" Dashes ("Em Dashes" / Unnecessary Hyphens) in User-Facing Text:**
+   - The owner explicitly mandated: *"please remove them dashes, whole app, and a rule for the future."* (Colloquially referred to as "em dashes").
    - **Strictly banned** in all screen text, toasts, placeholders, tooltips, and server error messages.
    - For empty or uncomputed values, use an **en dash `–`**.
    - For inline value separators, use a middle dot **`·`** (e.g. `DF/C/B2B/00001 · India`).

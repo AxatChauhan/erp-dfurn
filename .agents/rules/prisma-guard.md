@@ -21,3 +21,13 @@ trigger:
 
 5. **Index All Filter Columns**:
    - Any column used in `where`, `orderBy`, or relation foreign keys must have an `@@index` in `prisma/schema.prisma`.
+
+6. **Atomic Sequential Identifiers & Conflict Resilience**:
+   - Sequential human-readable business codes (`DF/C/...`, `DF/Q/...`, `DF_ENQ_...`) must never rely on unprotected in-memory scans.
+   - Code generation MUST be guarded with collision retry loops or database-level transactions so concurrent inserts never crash with unhandled `P2002` 500 errors.
+
+7. **Multi-Environment Migration Discipline**:
+   - Before any deployment to Vercel production:
+     1. All target database environments (Vercel production DB, staging DB, local `.env`) must be synchronized with `prisma db push` or migrations.
+     2. Production serverless regions must match the physical database region (`bom1` for Mumbai).
+

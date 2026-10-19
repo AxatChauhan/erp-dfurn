@@ -2,13 +2,16 @@ import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import NavigationProgressBar from './NavigationProgressBar';
 import { cookies } from 'next/headers';
+import { verifySessionToken } from '@/lib/session';
 
 export const instant = false;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const userName = cookieStore.get('user_name')?.value || 'Unknown';
-  const role = cookieStore.get('user_role')?.value || 'USER';
+  const token = cookieStore.get('auth_token')?.value;
+  const session = token ? await verifySessionToken(token) : null;
+  const userName = session?.name || cookieStore.get('user_name')?.value || 'Unknown';
+  const role = session?.role || 'USER';
 
   return (
     <div className="h-full flex w-full bg-[#f4f3ed]">

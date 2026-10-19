@@ -17,3 +17,15 @@ trigger:
 3. **Zero SQL Injections**:
    - 100% of queries must pass through Prisma parameterized queries.
    - Never use raw SQL string interpolation.
+
+4. **Mandatory Action Role Authorization**:
+   - Any endpoint performing sensitive state transitions (`APPROVE`, `REJECT`, `CANCEL`, `DELETE`, `ADMIN_OVERRIDE`) MUST check `session.role === 'SUPER_ADMIN'`.
+   - Never assume authentication implies administrative authorization. Block unauthorized roles with `403 Forbidden`.
+
+5. **Zero-Trust Client Cookies & Cryptographic Session Signatures**:
+   - Client-facing cookies (`user_role`, `user_id`, `user_name`) are strictly for cosmetic UI convenience and MUST NEVER be trusted for server-side decisions.
+   - All server-side authentication and role checks must decode and verify the cryptographically signed `auth_token` (HMAC-SHA256 / JWT).
+
+6. **API Route Middleware Response Format**:
+   - Middleware route protection for `/api/*` routes MUST return `401 Unauthorized` JSON (`{ error: 'Unauthorized' }`), NEVER a 307/308 HTML redirect.
+
