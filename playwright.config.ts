@@ -13,7 +13,7 @@ export default defineConfig({
   timeout: 30000,
   
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'https://optimistic-carson-blush.vercel.app',
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'https://optimistic-carson-one.vercel.app',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

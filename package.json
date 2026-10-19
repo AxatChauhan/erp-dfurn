@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test tests/*.test.js",
+    "test:sync": "node --test tests/cross-module-integrity.test.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "postinstall": "prisma generate",
