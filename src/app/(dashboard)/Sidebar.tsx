@@ -187,80 +187,82 @@ export default function Sidebar({ userRole }: { userRole: string }) {
           </div>
 
           {/* HRM SECTION */}
-          <div>
-            <button 
-              type="button"
-              onClick={() => setOpenSection(openSection === 'hrm' ? null : 'hrm')}
-              title="HRM & Factory"
-              className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
-                isHrmActive ? 'text-indigo-700' : 'text-gray-700'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                isHrmActive 
-                  ? 'bg-indigo-600 text-white shadow-xs' 
-                  : 'text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-900'
-              }`}>
-                <Briefcase size={20} />
-              </div>
-              {isHovered && (
-                <div className="flex items-center justify-between flex-1 min-w-0 pl-3 pr-1">
-                  <span className="font-bold text-xs uppercase tracking-wider text-indigo-700 truncate">
-                    HRM & FACTORY
-                  </span>
-                  {openSection === 'hrm' ? (
-                    <ChevronDown size={14} className="text-indigo-600 shrink-0" />
-                  ) : (
-                    <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                  )}
+          {(userRole === 'SUPER_ADMIN' || userRole === 'MANAGER') && (
+            <div>
+              <button 
+                type="button"
+                onClick={() => setOpenSection(openSection === 'hrm' ? null : 'hrm')}
+                title="HRM & Factory"
+                className={`w-full flex items-center px-4 py-1.5 transition-colors group cursor-pointer ${
+                  isHrmActive ? 'text-indigo-700' : 'text-gray-700'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  isHrmActive 
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-900'
+                }`}>
+                  <Briefcase size={20} />
+                </div>
+                {isHovered && (
+                  <div className="flex items-center justify-between flex-1 min-w-0 pl-3 pr-1">
+                    <span className="font-bold text-xs uppercase tracking-wider text-indigo-700 truncate">
+                      HRM & FACTORY
+                    </span>
+                    {openSection === 'hrm' ? (
+                      <ChevronDown size={14} className="text-indigo-600 shrink-0" />
+                    ) : (
+                      <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                    )}
+                  </div>
+                )}
+              </button>
+              
+              {isHovered && openSection === 'hrm' && (
+                <div className="flex flex-col mt-0.5 mb-1.5 pl-[64px] pr-3 gap-0.5 whitespace-nowrap">
+                  <Link 
+                    href="/hrm/employees" 
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/hrm/employees')}
+                    onClick={() => handleNavClick('/hrm/employees')}
+                    className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
+                      activePath.includes('/hrm/employees') 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
+                        : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    Employees
+                  </Link>
+                  <Link 
+                    href="/hrm/attendance" 
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/hrm/attendance')}
+                    onClick={() => handleNavClick('/hrm/attendance')}
+                    className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
+                      activePath === '/hrm/attendance'
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
+                        : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    Daily Attendance
+                  </Link>
+                  <Link 
+                    href="/hrm/attendance-register" 
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/hrm/attendance-register')}
+                    onClick={() => handleNavClick('/hrm/attendance-register')}
+                    className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
+                      activePath.includes('/hrm/attendance-register') 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
+                        : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    Mustard Roll Register
+                  </Link>
                 </div>
               )}
-            </button>
-            
-            {isHovered && openSection === 'hrm' && (
-              <div className="flex flex-col mt-0.5 mb-1.5 pl-[64px] pr-3 gap-0.5 whitespace-nowrap">
-                <Link 
-                  href="/hrm/employees" 
-                  prefetch={true}
-                  onMouseEnter={() => router.prefetch('/hrm/employees')}
-                  onClick={() => handleNavClick('/hrm/employees')}
-                  className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    activePath.includes('/hrm/employees') 
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
-                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  Employees
-                </Link>
-                <Link 
-                  href="/hrm/attendance" 
-                  prefetch={true}
-                  onMouseEnter={() => router.prefetch('/hrm/attendance')}
-                  onClick={() => handleNavClick('/hrm/attendance')}
-                  className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    activePath === '/hrm/attendance'
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
-                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  Daily Attendance
-                </Link>
-                <Link 
-                  href="/hrm/attendance-register" 
-                  prefetch={true}
-                  onMouseEnter={() => router.prefetch('/hrm/attendance-register')}
-                  onClick={() => handleNavClick('/hrm/attendance-register')}
-                  className={`py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors border-l-2 ${
-                    activePath.includes('/hrm/attendance-register') 
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold' 
-                      : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  Mustard Roll Register
-                </Link>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ORDERS */}
           <div 

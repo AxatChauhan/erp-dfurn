@@ -27,6 +27,26 @@ export async function middleware(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Role-based API route guards
+    if (pathname.startsWith('/api/users')) {
+      if (session.role !== 'SUPER_ADMIN') {
+        return NextResponse.json(
+          { error: 'Forbidden: Super Admin access required' },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (pathname.startsWith('/api/hrm')) {
+      if (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER') {
+        return NextResponse.json(
+          { error: 'Forbidden: Manager or Admin access required' },
+          { status: 403 }
+        );
+      }
+    }
+
     return NextResponse.next();
   }
 
@@ -38,6 +58,21 @@ export async function middleware(request: NextRequest) {
   // Page routes: Redirect authenticated users away from /login to /clients
   if (session && isLoginPage) {
     return NextResponse.redirect(new URL('/clients', request.url));
+  }
+
+  // Role-based Page route guards
+  if (session) {
+    if (pathname === '/users' || pathname.startsWith('/users/')) {
+      if (session.role !== 'SUPER_ADMIN') {
+        return NextResponse.redirect(new URL('/clients', request.url));
+      }
+    }
+
+    if (pathname.startsWith('/hrm')) {
+      if (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER') {
+        return NextResponse.redirect(new URL('/clients', request.url));
+      }
+    }
   }
 
   return NextResponse.next();

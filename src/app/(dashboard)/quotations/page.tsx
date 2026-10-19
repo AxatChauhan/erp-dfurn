@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { connection } from 'next/server';
 import QuotationsClient from './QuotationsClient';
 import { fetchQuotationsData } from '@/app/api/quotations/route';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 async function QuotationsDataLoader({
   searchParams,
@@ -10,6 +11,7 @@ async function QuotationsDataLoader({
 }) {
   await connection();
   const params = await searchParams;
+  const session = await getAuthenticatedSession();
 
   const data = await fetchQuotationsData({
     search: params.search || null,
@@ -17,7 +19,10 @@ async function QuotationsDataLoader({
     fy: params.fy || null,
     month: params.month || null,
     date: params.date || null,
-    salespersonId: params.salespersonId || null
+    salespersonId: params.salespersonId || null,
+    role: session?.role,
+    employeeId: session?.employeeId,
+    userId: session?.userId,
   });
 
   return (

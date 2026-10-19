@@ -85,6 +85,18 @@ export default function ClientsClient({
   const [sourceCategories, setSourceCategories] = useState<{ id: string; name: string }[]>(initialSourceCategories);
   const [kpis, setKpis] = useState(initialKpis);
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string>('SALES');
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
+    if (match) setUserRole(decodeURIComponent(match[1]));
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d.user?.role) setUserRole(d.user.role);
+      })
+      .catch(() => {});
+  }, []);
 
   // Search & Pagination
   const [searchTerm, setSearchTerm] = useState('');
@@ -728,18 +740,28 @@ export default function ClientsClient({
                             <div className="clt-x-in">
                               <div className="clt-x-inner">
                                 <div className="clt-x-actions">
-                                  <button
-                                    type="button"
-                                    className={`action-icon-btn danger ${isLocked ? 'cd-locked' : ''}`}
-                                    title={isLocked ? `Can't be deleted: this client has ${c.totalJobOrders} job order(s)` : 'Delete'}
-                                    disabled={isLocked}
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      !isLocked && handleDeleteClient(c.id);
-                                    }}
-                                  >
-                                    {isLocked ? <Lock size={15} /> : <Trash2 size={15} />}
-                                  </button>
+                                  {(() => {
+                                    const canDelete = userRole === 'SUPER_ADMIN';
+                                    const deleteDisabled = isLocked || !canDelete;
+                                    const deleteTitle = !canDelete
+                                      ? "Can't be deleted: Only Super Admin can delete clients"
+                                      : (isLocked ? `Can't be deleted: this client has ${c.totalJobOrders} job order(s)` : 'Delete');
+
+                                    return (
+                                      <button
+                                        type="button"
+                                        className={`action-icon-btn danger ${deleteDisabled ? 'cd-locked' : ''}`}
+                                        title={deleteTitle}
+                                        disabled={deleteDisabled}
+                                        onClick={e => {
+                                          e.stopPropagation();
+                                          !deleteDisabled && handleDeleteClient(c.id);
+                                        }}
+                                      >
+                                        {deleteDisabled ? <Lock size={15} /> : <Trash2 size={15} />}
+                                      </button>
+                                    );
+                                  })()}
 
                                   <button
                                     type="button"

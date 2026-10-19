@@ -3,9 +3,12 @@ import { useState, useEffect } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { useRouter } from 'next/navigation';
+
 type ERPUser = { id: string; name: string; username: string; role: string; };
 
 export default function UsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<ERPUser[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,10 +19,19 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setIsLoading(true);
-    const res = await fetch('/api/users');
-    const data = await res.json();
-    setUsers(data);
-    setIsLoading(false);
+    try {
+      const res = await fetch('/api/users');
+      if (!res.ok) {
+        router.replace('/clients');
+        return;
+      }
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      router.replace('/clients');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const optimisticUpdate = (u: ERPUser) => {

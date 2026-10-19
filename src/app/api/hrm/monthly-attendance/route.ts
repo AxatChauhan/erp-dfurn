@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     const url = new URL(req.url);
     const now = new Date();
     
@@ -139,6 +145,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { employeeId, date, status, checkInTime, overtimeHours } = body;
 

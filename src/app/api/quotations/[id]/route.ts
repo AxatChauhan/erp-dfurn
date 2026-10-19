@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { getAuthenticatedSession } from '@/lib/auth';
 import crypto from 'crypto';
 import {
   versionLabelOf,
@@ -13,6 +14,11 @@ import { diffVersions } from '@/lib/quotations/quoteChanges';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+
     const { id } = await params;
     const quotation = await prisma.quotation.findUnique({
       where: { id },
@@ -44,6 +50,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+    }
+
+    // Ownership check for Sales Rep
+    if (session.role === 'SALES') {
+      const isOwner =
+        (session.employeeId && quotation.salespersonId === session.employeeId) ||
+        (session.employeeId && quotation.enquiry?.salespersonId === session.employeeId) ||
+        quotation.enquiry?.enteredById === session.userId ||
+        quotation.versions.some(v => v.createdById === session.userId);
+
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'Forbidden: You can only view your own quotations' },
+          { status: 403 }
+        );
+      }
     }
 
     const latestVersion = quotation.versions[0] || null;
@@ -128,10 +150,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
     const { id } = await params;
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('user_id')?.value || null;
-    const userName = cookieStore.get('user_name')?.value || 'Admin';
+    const userId = session.userId;
+    const userName = session.name;
 
     const body = await req.json();
 
@@ -158,6 +183,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const currentVersion = existing.versions[0];
     if (!currentVersion) {
       return NextResponse.json({ error: 'No version found for quotation' }, { status: 400 });
+    }
+
+    // Ownership check for Sales Rep
+    if (session.role === 'SALES') {
+      const isOwner =
+        (session.employeeId && existing.salespersonId === session.employeeId) ||
+        (session.employeeId && existing.enquiry?.salespersonId === session.employeeId) ||
+        existing.enquiry?.enteredById === session.userId ||
+        currentVersion.createdById === session.userId;
+
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'Forbidden: You can only edit or revise your own quotations' },
+          { status: 403 }
+        );
+      }
     }
 
     // Terminal guard: closed deals cannot be resurrected

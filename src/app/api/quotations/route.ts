@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { getAuthenticatedSession } from '@/lib/auth';
 import crypto from 'crypto';
 import { fiscalYearOf } from '@/lib/dates';
 import {
@@ -20,6 +21,9 @@ export async function fetchQuotationsData(params: {
   month?: string | null;
   date?: string | null;
   salespersonId?: string | null;
+  role?: string | null;
+  employeeId?: string | null;
+  userId?: string | null;
 }) {
   const where: any = {};
 
@@ -32,6 +36,23 @@ export async function fetchQuotationsData(params: {
       { client: { name: { contains: q, mode: 'insensitive' } } },
       { enquiry: { enquiryNumber: { contains: q, mode: 'insensitive' } } }
     ];
+  }
+
+  // Scoping for Sales Rep
+  if (params.role === 'SALES') {
+    const ownerConditions = [
+      ...(params.employeeId ? [{ salespersonId: params.employeeId }, { enquiry: { salespersonId: params.employeeId } }] : []),
+      ...(params.userId ? [{ enquiry: { enteredById: params.userId } }, { versions: { some: { createdById: params.userId } } }] : [])
+    ];
+    if (where.OR) {
+      where.AND = [
+        { OR: where.OR },
+        { OR: ownerConditions }
+      ];
+      delete where.OR;
+    } else {
+      where.OR = ownerConditions;
+    }
   }
 
   // Fetch quotations, salespersons, and waiting enquiries concurrently
@@ -79,7 +100,16 @@ export async function fetchQuotationsData(params: {
       orderBy: { name: 'asc' }
     }),
     prisma.enquiry.findMany({
-      where: { stage: 'Qualified', outcome: 'Open' },
+      where: {
+        stage: 'Qualified',
+        outcome: 'Open',
+        ...(params.role === 'SALES' ? {
+          OR: [
+            ...(params.employeeId ? [{ salespersonId: params.employeeId }] : []),
+            ...(params.userId ? [{ enteredById: params.userId }] : [])
+          ]
+        } : {})
+      },
       select: { id: true }
     })
   ]);
@@ -218,6 +248,7 @@ export async function fetchQuotationsData(params: {
 
 export async function GET(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const status = searchParams.get('status');
@@ -232,7 +263,10 @@ export async function GET(req: Request) {
       fy,
       month,
       date,
-      salespersonId
+      salespersonId,
+      role: session?.role,
+      employeeId: session?.employeeId,
+      userId: session?.userId
     });
 
     return NextResponse.json(data);
@@ -244,9 +278,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('user_id')?.value || null;
-    const userName = cookieStore.get('user_name')?.value || 'Admin';
+    const session = await getAuthenticatedSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+    const userId = session.userId;
+    const userName = session.name;
 
     const body = await req.json();
     if (!body.enquiryId) {

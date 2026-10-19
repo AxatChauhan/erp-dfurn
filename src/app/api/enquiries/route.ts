@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 import { normalizePhone } from '@/lib/phone';
 import { findCountry, DEFAULT_COUNTRY_ISO2 } from '@/lib/countries';
 import { fiscalYearOf, currentFiscalYearKey, todayCodeDate } from '@/lib/dates';
@@ -34,6 +35,7 @@ async function generateNextEnquiryCode(): Promise<string> {
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getAuthenticatedSession(req);
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim().toLowerCase();
     const statusFilter = searchParams.get('status') || searchParams.get('stage');
@@ -42,7 +44,16 @@ export async function GET(req: NextRequest) {
     const dateFilter = searchParams.get('date');
     const salespersonFilter = searchParams.get('salespersonId');
 
+    const where: any = {};
+    if (session?.role === 'SALES') {
+      where.OR = [
+        ...(session.employeeId ? [{ salespersonId: session.employeeId }] : []),
+        ...(session.userId ? [{ enteredById: session.userId }] : [])
+      ];
+    }
+
     const rawEnquiries = await prisma.enquiry.findMany({
+      where,
       include: {
         client: {
           select: {
@@ -452,6 +463,20 @@ export async function POST(req: NextRequest) {
     // Generate daily sequential DF_ENQ_DDMMYYYY_NN
     const enquiryNumber = await generateNextEnquiryCode();
 
+    const session = await getAuthenticatedSession(req);
+    const finalEnteredById = session?.userId || enteredById || null;
+    const finalEnteredByName = session?.name || enteredByName || null;
+
+    let finalSalespersonId = salesperson ? salesperson.id : null;
+    let finalSalespersonName = salesperson ? salesperson.name : null;
+
+    if (session?.role === 'SALES' && session.employeeId) {
+      if (!finalSalespersonId) {
+        finalSalespersonId = session.employeeId;
+        finalSalespersonName = session.name;
+      }
+    }
+
     const createdEnquiry = await prisma.enquiry.create({
       data: {
         enquiryNumber,
@@ -459,13 +484,13 @@ export async function POST(req: NextRequest) {
         categoryId: categoryId || null,
         sourceCategoryId: sourceCategoryId || null,
         sourceName: sourceName ? sourceName.trim() : null,
-        salespersonId: salesperson ? salesperson.id : null,
-        salespersonName: salesperson ? salesperson.name : null,
+        salespersonId: finalSalespersonId,
+        salespersonName: finalSalespersonName,
         brief: brief ? brief.trim() : '',
         origin: origin || { channel: 'Manual' },
         originKey: originKey || null,
-        enteredById: enteredById || null,
-        enteredByName: enteredByName || null,
+        enteredById: finalEnteredById,
+        enteredByName: finalEnteredByName,
         stage: 'New',
         outcome: 'Open',
         status: 'NEW',

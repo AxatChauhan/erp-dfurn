@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       manager: { name: 'Factory Manager', password: ['manager', 'manager123'], role: 'MANAGER' },
     };
 
-    let authenticatedUser: { id: string; name: string; username: string; role: string } | null = null;
+    let authenticatedUser: { id: string; name: string; username: string; role: string; employeeId?: string | null } | null = null;
 
     if (user) {
       const dbPasswordMatch = verifyPassword(password, user.password);
@@ -53,6 +53,7 @@ export async function POST(req: Request) {
           name: user.name,
           username: user.username,
           role: user.role,
+          employeeId: user.employeeId || null,
         };
 
         // If password was stored in plaintext, auto-upgrade to salted PBKDF2 hash
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
               name: fallback.name,
               password: hashPassword(password),
               role: fallback.role,
+              employeeId: lowerUsername === 'sales' ? '85f1a53f-c3d7-4da1-b6e9-2067151e688b' : null,
             },
           });
           createdId = created.id;
@@ -95,6 +97,7 @@ export async function POST(req: Request) {
           name: fallback.name,
           username: lowerUsername,
           role: fallback.role,
+          employeeId: lowerUsername === 'sales' ? '85f1a53f-c3d7-4da1-b6e9-2067151e688b' : null,
         };
       }
     }
@@ -112,6 +115,7 @@ export async function POST(req: Request) {
       username: authenticatedUser.username,
       name: authenticatedUser.name,
       role: authenticatedUser.role as any,
+      employeeId: authenticatedUser.employeeId || null,
     });
 
     // Prepare response with cookies
@@ -120,6 +124,7 @@ export async function POST(req: Request) {
       role: authenticatedUser.role,
       name: authenticatedUser.name,
       id: authenticatedUser.id,
+      employeeId: authenticatedUser.employeeId || null,
     });
 
     const cookieOptions = {
@@ -145,6 +150,12 @@ export async function POST(req: Request) {
       ...cookieOptions,
       httpOnly: false,
     });
+    if (authenticatedUser.employeeId) {
+      res.cookies.set('employee_id', authenticatedUser.employeeId, {
+        ...cookieOptions,
+        httpOnly: false,
+      });
+    }
 
     // Also set via next/headers cookies() for server component compatibility
     try {
@@ -165,6 +176,12 @@ export async function POST(req: Request) {
         ...cookieOptions,
         httpOnly: false,
       });
+      if (authenticatedUser.employeeId) {
+        cookieStore.set('employee_id', authenticatedUser.employeeId, {
+          ...cookieOptions,
+          httpOnly: false,
+        });
+      }
     } catch {
       // Ignore if headers are already emitted
     }

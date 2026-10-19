@@ -105,6 +105,18 @@ export default function QuotationDetailModal({
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('SALES');
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)user_role=([^;]+)/);
+    if (match) setUserRole(decodeURIComponent(match[1]));
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d.user?.role) setUserRole(d.user.role);
+      })
+      .catch(() => {});
+  }, []);
 
   // Editing state
   const [editing, setEditing] = useState(false);
@@ -488,24 +500,43 @@ export default function QuotationDetailModal({
                 )}
 
                 {canonicalStatus === 'Admin Approval Required' && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn-primary qd-btn"
-                      onClick={() => handleExecuteAction('APPROVE')}
-                      disabled={actionLoading}
+                  userRole === 'SUPER_ADMIN' ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary qd-btn"
+                        onClick={() => handleExecuteAction('APPROVE')}
+                        disabled={actionLoading}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="hier-cancel-btn qd-btn"
+                        onClick={() => handleExecuteAction('REJECT_APPROVAL')}
+                        disabled={actionLoading}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  ) : (
+                    <span
+                      className="qd-pending-chip"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '6px 12px',
+                        borderRadius: 6,
+                        background: '#FEF3C7',
+                        color: '#92400E',
+                        fontSize: 12,
+                        fontWeight: 600
+                      }}
                     >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      className="hier-cancel-btn qd-btn"
-                      onClick={() => handleExecuteAction('REJECT_APPROVAL')}
-                      disabled={actionLoading}
-                    >
-                      Reject
-                    </button>
-                  </>
+                      <Clock size={13} /> Awaiting Super Admin Approval
+                    </span>
+                  )
                 )}
 
                 {canonicalStatus === 'Approved' && (

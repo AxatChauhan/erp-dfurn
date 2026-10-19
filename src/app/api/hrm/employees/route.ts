@@ -5,7 +5,10 @@ import { getAuthenticatedSession } from '@/lib/auth';
 export async function GET(req: Request) {
   try {
     const session = await getAuthenticatedSession(req);
-    const isSuperAdmin = session?.role === 'SUPER_ADMIN';
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+    const isSuperAdmin = session.role === 'SUPER_ADMIN';
 
     const url = new URL(req.url);
     const search = url.searchParams.get('search')?.trim() || '';
@@ -72,8 +75,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getAuthenticatedSession(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
     }
 
     const body = await req.json();

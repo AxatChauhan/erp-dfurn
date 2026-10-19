@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+
     // 1. Fetch all existing quotations' enquiryIds
     const existingQuotes = await prisma.quotation.findMany({
       where: { enquiryId: { not: null } },
@@ -10,12 +13,20 @@ export async function GET() {
     });
     const quotedEnquiryIds = new Set(existingQuotes.map(q => q.enquiryId));
 
-    // 2. Fetch all qualified open enquiries
+    // 2. Fetch qualified open enquiries
+    const where: any = {
+      stage: 'Qualified',
+      outcome: 'Open'
+    };
+    if (session?.role === 'SALES') {
+      where.OR = [
+        ...(session.employeeId ? [{ salespersonId: session.employeeId }] : []),
+        ...(session.userId ? [{ enteredById: session.userId }] : [])
+      ];
+    }
+
     const enquiries = await prisma.enquiry.findMany({
-      where: {
-        stage: 'Qualified',
-        outcome: 'Open'
-      },
+      where,
       include: {
         client: {
           select: {

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     const { id } = await params;
     const employee = await prisma.employee.findUnique({
       where: { id },
@@ -23,6 +29,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
+    if (session.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({
+        ...employee,
+        aadhaarNumber: employee.aadhaarNumber ? `•••• •••• ${employee.aadhaarNumber.slice(-4)}` : null,
+        panNumber: employee.panNumber ? `••••••${employee.panNumber.slice(-4)}` : null,
+        accountNumber: employee.accountNumber ? `••••••••${employee.accountNumber.slice(-4)}` : null,
+        bankName: employee.bankName ? '••••' : null,
+        ifscCode: null,
+        baseRate: null,
+      });
+    }
+
     return NextResponse.json(employee);
   } catch (error: any) {
     console.error('Error fetching employee:', error);
@@ -32,6 +50,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
 
@@ -82,6 +105,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || session.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
+    }
+
     const { id } = await params;
     const url = new URL(req.url);
     const hard = url.searchParams.get('hard') === 'true';

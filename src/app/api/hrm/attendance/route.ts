@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 // Helper to get today's date formatted as YYYY-MM-DD in local time
 function getLocalDateString(d: Date = new Date()): string {
@@ -20,6 +21,11 @@ function formatTimeString(d: Date = new Date()): string {
 
 export async function GET(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     const url = new URL(req.url);
     const date = url.searchParams.get('date') || getLocalDateString();
     const departmentId = url.searchParams.get('departmentId');
@@ -95,6 +101,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { employeeId, type, source } = body;
     const date = body.date || getLocalDateString();

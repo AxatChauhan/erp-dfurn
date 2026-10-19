@@ -3,6 +3,7 @@ import { connection } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import EnquiriesClient from './EnquiriesClient';
 import { fiscalYearOf, currentFiscalYearKey } from '@/lib/dates';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 async function EnquiriesDataLoader({
   searchParams,
@@ -11,6 +12,7 @@ async function EnquiriesDataLoader({
 }) {
   await connection();
   const params = await searchParams;
+  const session = await getAuthenticatedSession();
 
   const defaultFY = currentFiscalYearKey();
   const fyFilter = params.fy || defaultFY;
@@ -19,9 +21,18 @@ async function EnquiriesDataLoader({
   const salespersonFilter = params.salespersonId;
   const statusFilter = params.status;
 
+  const where: any = {};
+  if (session?.role === 'SALES') {
+    where.OR = [
+      ...(session.employeeId ? [{ salespersonId: session.employeeId }] : []),
+      ...(session.userId ? [{ enteredById: session.userId }] : [])
+    ];
+  }
+
   const [rawEnquiries, categories, sourceCategories, employees, clients, lostReasons] =
     await Promise.all([
       prisma.enquiry.findMany({
+        where,
         include: {
           client: true,
           category: true,

@@ -114,8 +114,13 @@ export default function QuickEnquiryWizardModal({
       setEmail('');
       setSelectedCategoryId('');
       setSelectedSourceCategoryId('');
-      setSourceName('');
-      setSelectedSalespersonId(salespersons.length > 0 ? salespersons[0].id : '');
+      const myEmployeeId = typeof document !== 'undefined'
+        ? document.cookie.match(/(?:^|;\s*)employee_id=([^;]+)/)?.[1]
+        : null;
+      const defaultSp = (myEmployeeId && salespersons.some(s => s.id === myEmployeeId))
+        ? myEmployeeId
+        : (salespersons.length > 0 ? salespersons[0].id : '');
+      setSelectedSalespersonId(defaultSp);
       setPendingFiles([]);
       setNameError(false);
       setPhoneError('');

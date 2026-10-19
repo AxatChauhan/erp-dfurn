@@ -20,6 +20,7 @@ export async function GET(req: Request) {
         id: session.userId,
         name: session.name,
         role: session.role,
+        employeeId: session.employeeId || null,
       },
     });
   }

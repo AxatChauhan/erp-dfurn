@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 
 const DEFAULT_DEPARTMENTS = [
   { name: 'Carpentry', code: 'DEP-CARP' },
@@ -10,8 +11,13 @@ const DEFAULT_DEPARTMENTS = [
   { name: 'Office & Sales', code: 'DEP-OFFC' },
 ];
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'MANAGER')) {
+      return NextResponse.json({ error: 'Forbidden: Manager or Admin access required' }, { status: 403 });
+    }
+
     let departments = await prisma.department.findMany({
       orderBy: { name: 'asc' },
       include: {

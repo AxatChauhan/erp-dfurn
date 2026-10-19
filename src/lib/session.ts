@@ -3,6 +3,7 @@ export interface SessionPayload {
   username: string;
   name: string;
   role: 'SUPER_ADMIN' | 'SALES' | 'MANAGER' | 'USER';
+  employeeId?: string | null;
   exp: number; // Unix timestamp in seconds
 }
 
@@ -105,6 +106,7 @@ export async function verifySessionToken(token: string | null | undefined): Prom
           username: 'sales',
           name: 'Sales Rep',
           role: 'SALES',
+          employeeId: '85f1a53f-c3d7-4da1-b6e9-2067151e688b',
           exp: Math.floor(Date.now() / 1000) + 86400
         };
       }

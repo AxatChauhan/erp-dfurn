@@ -8,10 +8,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     const session = await getAuthenticatedSession(req);
-    const cookieStore = await cookies();
-    const userId = session?.userId || cookieStore.get('user_id')?.value || null;
-    const userName = session?.name || cookieStore.get('user_name')?.value || 'Admin';
-    const userRole = session?.role || cookieStore.get('user_role')?.value || 'SALES';
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+    const userId = session.userId;
+    const userName = session.name;
+    const userRole = session.role;
 
     const body = await req.json();
     const { action } = body;
@@ -36,6 +38,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const currentVersion = quotation.versions[0];
     if (!currentVersion) {
       return NextResponse.json({ error: 'No active version for quotation' }, { status: 400 });
+    }
+
+    // Ownership check for Sales Rep
+    if (userRole === 'SALES') {
+      const isOwner =
+        (session.employeeId && quotation.salespersonId === session.employeeId) ||
+        (session.employeeId && quotation.enquiry?.salespersonId === session.employeeId) ||
+        quotation.enquiry?.enteredById === session.userId ||
+        currentVersion.createdById === session.userId;
+
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'Forbidden: You can only perform actions on your own quotations' },
+          { status: 403 }
+        );
+      }
     }
 
     const currentStatus = normalizeQuoteStatus(currentVersion.status);

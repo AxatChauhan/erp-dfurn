@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSession } from '@/lib/auth';
 import { invalidateClientKpiCache } from '@/app/api/clients/route';
 import { formatPhone, normalizePhone, GSTIN_REGEX, EMAIL_REGEX, Address } from '@/lib/phone';
 import { findCountry, DEFAULT_COUNTRY_ISO2 } from '@/lib/countries';
@@ -199,6 +200,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthenticatedSession(req);
+    if (!session || session.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: Only Super Admin can delete clients' }, { status: 403 });
+    }
+
     const { id } = await params;
 
     // Check transactions
