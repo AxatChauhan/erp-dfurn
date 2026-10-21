@@ -1,6 +1,7 @@
 ---
-trigger:
-  glob: "src/middleware.ts,src/lib/auth.ts,src/app/api/**"
+trigger: glob
+globs: "src/middleware.ts,src/lib/auth.ts,src/app/api/**"
+description: "Security & RBAC Protection Rules"
 ---
 
 # Security & RBAC Protection Rules

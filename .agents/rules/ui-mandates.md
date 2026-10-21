@@ -1,6 +1,7 @@
 ---
-trigger:
-  glob: "src/app/**"
+trigger: glob
+globs: "src/app/**"
+description: "UI Design & Owner Mandates Rules (DFurn ERP)"
 ---
 
 # UI Design & Owner Mandates Rules (DFurn ERP)

@@ -1,6 +1,7 @@
 ---
-trigger:
-  glob: "prisma/**,src/app/api/**,src/lib/prisma.ts"
+trigger: glob
+globs: "prisma/**,src/app/api/**,src/lib/prisma.ts"
+description: "Prisma & Database Query Performance Rules"
 ---
 
 # Prisma & Database Query Performance Rules
