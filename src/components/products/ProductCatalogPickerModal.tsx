@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, Plus, Minus, Check, Package, Loader2, Sparkles, Layers, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -45,11 +46,16 @@ export default function ProductCatalogPickerModal({
   actionButtonText = 'Add to Scope',
   initialCategoryId,
 }: ProductCatalogPickerModalProps) {
+  const [mounted, setMounted] = useState<boolean>(false);
   const [products, setProducts] = useState<any[]>(cachedMasterProducts || []);
   const [loading, setLoading] = useState<boolean>(!cachedMasterProducts);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryId || 'ALL');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Currently inspected/staged product in the bottom configuration bar
   const [stagedProduct, setStagedProduct] = useState<any | null>(null);
@@ -193,7 +199,9 @@ export default function ProductCatalogPickerModal({
       expectedDimensions: formattedDim,
       materialPreference: materialNote.trim() || undefined,
       clientComment: clientComment.trim() || undefined,
-    };
+      ...(stagedProduct.leadTimeDays ? { leadTimeDays: stagedProduct.leadTimeDays } : {}),
+      ...(stagedProduct.defaultDeliveryMode ? { defaultDeliveryMode: stagedProduct.defaultDeliveryMode } : {}),
+    } as any;
 
     onSelectProduct(item);
     toast.success(`Added ${stagedProduct.name} (Qty: ${safeQty})`);
@@ -202,26 +210,32 @@ export default function ProductCatalogPickerModal({
     setStagedProduct(null);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const modalContent = (
     <div
       className="wizard-overlay"
       style={{
-        zIndex: 1100,
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.55)',
+        background: 'rgba(0, 0, 0, 0.65)',
         backdropFilter: 'blur(6px)',
         padding: '16px',
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="qd-dlg wide"
         role="dialog"
         aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: 1040,
@@ -909,4 +923,6 @@ export default function ProductCatalogPickerModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

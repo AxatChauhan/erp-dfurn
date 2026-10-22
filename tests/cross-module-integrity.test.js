@@ -1,5 +1,7 @@
 const { test, describe, before } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient(
@@ -369,6 +371,24 @@ describe('Tri-Module Data Integrity & Cross-Module Synchronization Suite', () =>
     }
 
     assert.equal(emDashViolations, 0, `Zero em dashes allowed in product catalog (found ${emDashViolations})`);
+  });
+
+  // -------------------------------------------------------------
+  // TEST 7: PRODUCT CATALOG PICKER ISOLATION & EVENT DECOUPLING
+  // -------------------------------------------------------------
+  test('SYNC-07: Product Catalog Picker Isolation & Event Decoupling in Enquiries', () => {
+    // 1. Verify ProductCatalogPickerModal uses createPortal and stops propagation
+    const pickerFile = path.join(__dirname, '..', 'src', 'components', 'products', 'ProductCatalogPickerModal.tsx');
+    const pickerContent = fs.readFileSync(pickerFile, 'utf8');
+    assert.ok(pickerContent.includes('createPortal'), 'ProductCatalogPickerModal must use createPortal for DOM isolation');
+    assert.ok(pickerContent.includes('e.stopPropagation()'), 'ProductCatalogPickerModal must stop event bubbling');
+    assert.ok(!pickerContent.includes('\u2014'), 'ProductCatalogPickerModal must have zero em dashes');
+
+    // 2. Verify EnquiryDetailModal protects backdrop clicks
+    const modalFile = path.join(__dirname, '..', 'src', 'app', '(dashboard)', 'enquiries', 'components', 'EnquiryDetailModal.tsx');
+    const modalContent = fs.readFileSync(modalFile, 'utf8');
+    assert.ok(modalContent.includes('e.target === e.currentTarget'), 'EnquiryDetailModal must guard backdrop clicks to prevent child bubbling closures');
+    assert.ok(!modalContent.includes('\u2014'), 'EnquiryDetailModal must have zero em dashes');
   });
 
 });

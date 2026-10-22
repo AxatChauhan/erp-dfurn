@@ -743,7 +743,15 @@ export default function EnquiryDetailModal({
   const journeySteps = buildJourneySteps();
 
   return (
-    <div className={`detail-overlay cd-overlay ${drawerOpen ? 'cd-with-drawer' : ''}`} style={{ transition: 'padding-right 0.22s ease' }} onClick={handleRequestClose}>
+    <div
+      className={`detail-overlay cd-overlay ${drawerOpen ? 'cd-with-drawer' : ''}`}
+      style={{ transition: 'padding-right 0.22s ease' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleRequestClose();
+        }
+      }}
+    >
       <div className="detail-modal cd-modal eqd-modal" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: drawerOpen ? 1220 : 1380, height: 'min(90vh, 900px)', background: '#FFFFFF', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', transition: 'max-width 0.22s ease' }}>
         
         {/* HEADER BAR matching Image 3 */}
@@ -1945,8 +1953,21 @@ export default function EnquiryDetailModal({
 
       {/* MARK AS LOST DIALOG */}
       {lostDialogOpen && (
-        <div className="wizard-overlay" style={{ zIndex: 1200 }}>
-          <div className="eqd-dlg" style={{ width: 440, background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+        <div
+          className="wizard-overlay"
+          style={{ zIndex: 1200 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.target === e.currentTarget) {
+              setLostDialogOpen(false);
+            }
+          }}
+        >
+          <div
+            className="eqd-dlg"
+            style={{ width: 440, background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="eqd-dlg-head" style={{ padding: '20px 24px 10px' }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111' }}>Mark as lost</h3>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: '#8B8778' }}>
