@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { signSessionToken, verifyPassword, hashPassword } from '@/lib/auth';
 
@@ -118,9 +117,10 @@ export async function POST(req: Request) {
       employeeId: authenticatedUser.employeeId || null,
     });
 
-    // Prepare response with cookies
+    // Prepare response with token in payload for client-side fallback
     const res = NextResponse.json({
       success: true,
+      token: signedToken,
       role: authenticatedUser.role,
       name: authenticatedUser.name,
       id: authenticatedUser.id,
@@ -133,10 +133,10 @@ export async function POST(req: Request) {
       sameSite: 'lax' as const,
     };
 
-    // Set signed auth_token on response directly
+    // Set cookies directly on response
     res.cookies.set('auth_token', signedToken, {
       ...cookieOptions,
-      httpOnly: true,
+      httpOnly: false,
     });
     res.cookies.set('user_role', authenticatedUser.role, {
       ...cookieOptions,
@@ -155,35 +155,6 @@ export async function POST(req: Request) {
         ...cookieOptions,
         httpOnly: false,
       });
-    }
-
-    // Also set via next/headers cookies() for server component compatibility
-    try {
-      const cookieStore = await cookies();
-      cookieStore.set('auth_token', signedToken, {
-        ...cookieOptions,
-        httpOnly: true,
-      });
-      cookieStore.set('user_role', authenticatedUser.role, {
-        ...cookieOptions,
-        httpOnly: false,
-      });
-      cookieStore.set('user_name', authenticatedUser.name, {
-        ...cookieOptions,
-        httpOnly: false,
-      });
-      cookieStore.set('user_id', authenticatedUser.id, {
-        ...cookieOptions,
-        httpOnly: false,
-      });
-      if (authenticatedUser.employeeId) {
-        cookieStore.set('employee_id', authenticatedUser.employeeId, {
-          ...cookieOptions,
-          httpOnly: false,
-        });
-      }
-    } catch {
-      // Ignore if headers are already emitted
     }
 
     return res;

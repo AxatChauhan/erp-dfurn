@@ -5,12 +5,14 @@ import { verifySessionToken } from './lib/session';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow static assets, images, and auth APIs through unconditionally
+  // Allow static assets, images, manifest, and auth APIs through unconditionally
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
     pathname === '/favicon.ico' ||
-    /\.(png|jpg|jpeg|svg|webp|ico|gif|css|js)$/i.test(pathname)
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    /\.(png|jpg|jpeg|svg|webp|ico|gif|css|js|json)$/i.test(pathname)
   ) {
     return NextResponse.next();
   }
@@ -50,14 +52,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const ua = request.headers.get('user-agent') || '';
+  const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(ua);
+
   // Page routes: Redirect unauthenticated requests to /login
   if (!session && !isLoginPage) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    // Only persist explicit deep-link redirects, avoid forcing desktop /clients on mobile
+    if (pathname !== '/' && pathname !== '/clients') {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Page routes: Redirect authenticated users away from /login to /clients
+  // Page routes: Redirect authenticated users away from /login to role/device portal
   if (session && isLoginPage) {
-    return NextResponse.redirect(new URL('/clients', request.url));
+    const target = isMobile ? '/app/enquiries' : '/clients';
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   // Role-based Page route guards

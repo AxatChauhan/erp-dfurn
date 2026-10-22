@@ -25,10 +25,14 @@ import {
   Info, 
   X, 
   Plus,
-  ArrowRight
+  ArrowRight,
+  Package,
+  Minus,
+  Clock
 } from 'lucide-react';
 import { formatDate, formatDateTime, shortDate } from '@/lib/dates';
 import { toast } from 'sonner';
+import ProductCatalogPickerModal, { SelectedProductItem } from '@/components/products/ProductCatalogPickerModal';
 
 interface EnquiryDetailModalProps {
   isOpen: boolean;
@@ -117,6 +121,7 @@ export default function EnquiryDetailModal({
   // Working copy for qualification
   const [brief, setBrief] = useState('');
   const [lineItems, setLineItems] = useState<any[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [opportunityValue, setOpportunityValue] = useState<number | null>(null);
   const [opportunityValueTouched, setOpportunityValueTouched] = useState(false);
   const [baselineSnapshot, setBaselineSnapshot] = useState('');
@@ -344,22 +349,24 @@ export default function EnquiryDetailModal({
     }
   };
 
-  const handleAddCustomProduct = () => {
-    const name = prompt('Product Name:');
-    if (!name?.trim()) return;
-    const rateStr = prompt('Rate per unit (₹):', '5000');
-    const rate = parseFloat(rateStr || '0') || 0;
-
+  const handleSelectProduct = (selected: SelectedProductItem) => {
     const newItem = {
-      name: name.trim(),
-      description: name.trim(),
-      code: `PRD-${Math.floor(100 + Math.random() * 900)}`,
-      quantity: 1,
-      unit: 'Nos',
-      unitPrice: rate,
-      total: rate,
-      comment: '',
       refType: 'MasterProduct',
+      refId: selected.refId,
+      name: selected.name,
+      description: selected.name,
+      code: selected.code,
+      quantity: selected.quantity,
+      unit: selected.unit,
+      unitPrice: selected.unitPrice,
+      total: selected.total,
+      thumbnail: selected.thumbnail,
+      expectedDimensions: selected.expectedDimensions,
+      materialPreference: selected.materialPreference,
+      clientComment: selected.clientComment,
+      comment: selected.clientComment || '',
+      leadTimeDays: (selected as any).leadTimeDays,
+      defaultDeliveryMode: (selected as any).defaultDeliveryMode,
     };
     const updated = [...lineItems, newItem];
     setLineItems(updated);
@@ -1277,93 +1284,173 @@ export default function EnquiryDetailModal({
 
                   {/* Products Section matching Image 3 */}
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#4A4539', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
-                      PRODUCTS
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#4A4539', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                        PRODUCTS ({lineItems.length})
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPickerOpen(true)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          height: 30,
+                          padding: '0 12px',
+                          borderRadius: 6,
+                          background: '#000000',
+                          border: 'none',
+                          color: '#FFFFFF',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Plus size={13} /> Add Product
+                      </button>
                     </div>
 
-                    {lineItems.map((item, idx) => (
-                      <div key={idx} className="eqd-line" style={{ border: '1px solid #E5DFD3', borderRadius: 8, padding: '12px 14px', marginBottom: 12, background: '#FFFFFF' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          {/* Thumbnail Box */}
-                          <div style={{ width: 44, height: 44, borderRadius: 6, background: '#F4F1EC', border: '1px solid #E5DFD3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <FileText size={18} color="#8B8778" />
-                          </div>
-
-                          {/* Name & Code */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#111111' }}>
-                              {item.name || item.description}
-                            </span>
-                            <span style={{ fontSize: 12, color: '#8B8778', marginLeft: 8 }}>
-                              {item.code || 'WOR-PED-MET-002'}
-                            </span>
-                          </div>
-
-                          {/* Quantity input & Unit */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleQtyChange(idx, parseInt(e.target.value, 10))}
-                              style={{ width: 68, height: 34, padding: '4px 8px', borderRadius: 6, border: '1px solid #DCD5C8', textAlign: 'center', fontSize: 13, fontWeight: 600 }}
-                            />
-                            <span style={{ fontSize: 13, color: '#6F6858' }}>{item.unit || 'Nos'}</span>
-                          </div>
-
-                          {/* Fixed Specs Toggle Link */}
-                          <button
-                            type="button"
-                            onClick={() => setShowFixedSpecs(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                            style={{ background: 'none', border: 'none', color: '#FF7700', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                          >
-                            {showFixedSpecs[idx] ? 'Hide fixed specifications' : 'Show fixed specifications'}
-                          </button>
-
-                          {/* Trash Icon */}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveLineItem(idx)}
-                            style={{ background: 'none', border: 'none', color: '#8B8778', cursor: 'pointer', padding: 4 }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                    {lineItems.length === 0 ? (
+                      <div
+                        style={{
+                          border: '1.5px dashed #DCD5C8',
+                          borderRadius: 8,
+                          padding: '24px 16px',
+                          textAlign: 'center',
+                          background: '#FAF8F4',
+                          marginBottom: 12,
+                        }}
+                      >
+                        <Package size={28} style={{ margin: '0 auto 6px auto', color: '#A39B8B' }} />
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#333333' }}>
+                          No products scoped yet
                         </div>
-
-                        {/* Comment Input Box */}
-                        <div style={{ marginTop: 10 }}>
-                          <input
-                            type="text"
-                            placeholder="What did the client say? (optional)"
-                            value={item.comment || ''}
-                            onChange={(e) => handleCommentChange(idx, e.target.value)}
-                            style={{ width: '100%', height: 36, padding: '6px 12px', borderRadius: 6, border: '1px solid #DCD5C8', fontSize: 13, outline: 'none' }}
-                          />
+                        <div style={{ fontSize: 12, color: '#8B8778', marginTop: 2, marginBottom: 10 }}>
+                          Select from the 282 master furniture models to establish accurate opportunity pricing.
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setPickerOpen(true)}
+                          style={{
+                            padding: '6px 16px',
+                            borderRadius: 6,
+                            border: '1px solid #000000',
+                            background: '#FFFFFF',
+                            color: '#000000',
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          + Browse Catalog
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      lineItems.map((item, idx) => {
+                        const thumb = item.thumbnail || item.product?.thumbnail;
+                        const lineTotal = Number(item.total) || (Number(item.quantity || 1) * Number(item.unitPrice || 0));
 
-                    {/* + Add products button */}
-                    <button
-                      type="button"
-                      onClick={handleAddCustomProduct}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        height: 34,
-                        padding: '0 14px',
-                        borderRadius: 6,
-                        background: '#FFFFFF',
-                        border: '1px solid #DCD5C8',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: '#333333',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Plus size={14} /> Add products
-                    </button>
+                        return (
+                          <div key={idx} className="eqd-line" style={{ border: '1px solid #E5DFD3', borderRadius: 8, padding: '12px 14px', marginBottom: 12, background: '#FFFFFF' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                              {/* Thumbnail Box */}
+                              {thumb ? (
+                                <img
+                                  src={thumb}
+                                  alt=""
+                                  style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0, border: '1px solid #E5DFD3' }}
+                                />
+                              ) : (
+                                <div style={{ width: 44, height: 44, borderRadius: 6, background: '#F4F1EC', border: '1px solid #E5DFD3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <Package size={20} color="#8B8778" />
+                                </div>
+                              )}
+
+                              {/* Name, SKU & Dimensions */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontSize: 14, fontWeight: 700, color: '#111111' }}>
+                                    {item.name || item.description}
+                                  </span>
+                                  <span style={{ fontSize: 12, color: '#8B8778' }}>
+                                    {item.code || item.productCode || 'Custom Unit'}
+                                  </span>
+                                </div>
+                                {item.expectedDimensions && (
+                                  <div style={{ fontSize: 11, color: '#5A554A', background: '#F4F1EA', padding: '1px 6px', borderRadius: 4, display: 'inline-block', marginTop: 3, fontFamily: 'monospace' }}>
+                                    {item.expectedDimensions}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Quantity input & Pricing */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={item.quantity}
+                                    onChange={(e) => handleQtyChange(idx, parseInt(e.target.value, 10))}
+                                    style={{ width: 56, height: 34, padding: '4px 6px', borderRadius: 6, border: '1px solid #DCD5C8', textAlign: 'center', fontSize: 13, fontWeight: 600 }}
+                                  />
+                                  <span style={{ fontSize: 12.5, color: '#6F6858' }}>{item.unit || 'Nos'}</span>
+                                </div>
+
+                                <div style={{ textAlign: 'right', minWidth: 78 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>
+                                    ₹{lineTotal.toLocaleString('en-IN')}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: '#8B8778' }}>
+                                    ₹{Number(item.unitPrice || 0).toLocaleString('en-IN')} each
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Fixed Specs Toggle Link */}
+                              <button
+                                type="button"
+                                onClick={() => setShowFixedSpecs(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                                style={{ background: 'none', border: 'none', color: '#FF7700', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                              >
+                                {showFixedSpecs[idx] ? 'Hide specs' : 'Show specs'}
+                              </button>
+
+                              {/* Trash Icon */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveLineItem(idx)}
+                                style={{ background: 'none', border: 'none', color: '#8B8778', cursor: 'pointer', padding: 4 }}
+                                title="Remove product"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+
+                            {/* Comment Input Box */}
+                            <div style={{ marginTop: 10 }}>
+                              <input
+                                type="text"
+                                placeholder="Client specific specification notes or finish preferences (optional)"
+                                value={item.comment || ''}
+                                onChange={(e) => handleCommentChange(idx, e.target.value)}
+                                style={{ width: '100%', height: 36, padding: '6px 12px', borderRadius: 6, border: '1px solid #DCD5C8', fontSize: 13, outline: 'none' }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+
+                    {/* Manufacturing Feasibility Indicator */}
+                    {lineItems.some((it: any) => it.leadTimeDays || it.defaultDeliveryMode) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#F8F6F0', borderRadius: 6, border: '1px solid #E5DFD3', fontSize: 12, color: '#5A554A', marginTop: 10, marginBottom: 12 }}>
+                        <Clock size={14} color="#8B8778" />
+                        <span>
+                          Estimated Factory Lead Time: ~{Math.max(...lineItems.map((it: any) => it.leadTimeDays || 14))} Days
+                          {lineItems.some((it: any) => it.defaultDeliveryMode) ? ` · Delivery Mode: ${lineItems.find((it: any) => it.defaultDeliveryMode)?.defaultDeliveryMode}` : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Opportunity Value */}
@@ -1922,6 +2009,16 @@ export default function EnquiryDetailModal({
           </div>
         </div>
       )}
+
+      {/* Product Catalog Picker Modal */}
+      <ProductCatalogPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelectProduct={handleSelectProduct}
+        title="Add Product to Enquiry Scope"
+        subtitle="Choose standard modular furniture models from the 282-item factory catalog."
+        actionButtonText="Add to Scope"
+      />
     </div>
   );
 }

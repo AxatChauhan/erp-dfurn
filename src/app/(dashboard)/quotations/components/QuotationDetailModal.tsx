@@ -45,6 +45,7 @@ import {
 import { generateQuotationPDF } from '@/lib/quotations/quotePdfGenerator';
 import ParameterHistoryModal from './ParameterHistoryModal';
 import ReviseConfirmationModal from './ReviseConfirmationModal';
+import ProductCatalogPickerModal, { SelectedProductItem } from '@/components/products/ProductCatalogPickerModal';
 
 interface QuotationDetailModalProps {
   quoteId: string | null;
@@ -121,6 +122,7 @@ export default function QuotationDetailModal({
   // Editing state
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<any>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('products');
   const [viewingVersionNo, setViewingVersionNo] = useState<number | null>(null);
   const [openSpecs, setOpenSpecs] = useState<Set<string>>(new Set());
@@ -132,6 +134,32 @@ export default function QuotationDetailModal({
       else next.add(lineId);
       return next;
     });
+  };
+
+  const handlePickProduct = (selected: SelectedProductItem) => {
+    const newItem = {
+      lineId: `line-${Date.now()}`,
+      refType: selected.refType || 'MasterProduct',
+      refId: selected.refId,
+      snapshot: {
+        name: selected.name,
+        code: selected.code,
+        unit: selected.unit || 'Nos',
+        imageUrl: selected.thumbnail,
+      },
+      description: selected.clientComment || selected.name,
+      quantity: selected.quantity,
+      unitPrice: selected.unitPrice,
+      discountType: null,
+      discountValue: 0,
+      expectedDimensions: selected.expectedDimensions,
+      materialPreference: selected.materialPreference || null,
+      clientComment: selected.clientComment || null,
+      customizations: [],
+    };
+    if (draft) {
+      setDraft({ ...draft, items: [...(draft.items || []), newItem] });
+    }
   };
 
   // Modals inside detail
@@ -1353,24 +1381,23 @@ export default function QuotationDetailModal({
                   <button
                     type="button"
                     className="wizard-add-row-btn"
-                    onClick={() => {
-                      const newItem = {
-                        lineId: `line-${Date.now()}`,
-                        refType: 'Variant',
-                        refId: null,
-                        snapshot: { name: 'Additional Modular Product', code: 'PROD-ADD', unit: 'pcs' },
-                        description: '',
-                        quantity: 1,
-                        unitPrice: 5000,
-                        discountType: null,
-                        discountValue: 0,
-                        customizations: []
-                      };
-                      setDraft({ ...draft, items: [...draft.items, newItem] });
+                    onClick={() => setPickerOpen(true)}
+                    style={{
+                      marginTop: 10,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: '#000000',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '8px 18px',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
                     }}
-                    style={{ marginTop: 8 }}
                   >
-                    + Add product
+                    <Plus size={15} /> + Add from Product Catalog
                   </button>
                 )}
               </div>
@@ -2065,6 +2092,16 @@ export default function QuotationDetailModal({
           versions={quote.versions}
         />
       )}
+
+      {/* Master Product Catalog Picker Modal */}
+      <ProductCatalogPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelectProduct={handlePickProduct}
+        title="Add Product to Quotation"
+        subtitle="Choose standard modular furniture models from the 282-item factory catalog."
+        actionButtonText="Add to Quote"
+      />
     </div>
   );
 }

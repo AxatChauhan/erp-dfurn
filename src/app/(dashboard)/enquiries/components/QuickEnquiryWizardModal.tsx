@@ -9,10 +9,15 @@ import {
   MessageCircle, 
   Save, 
   Info,
-  X
+  X,
+  Package,
+  Trash2,
+  Minus,
+  Sparkles
 } from 'lucide-react';
 import { COUNTRIES, findCountry, DEFAULT_COUNTRY_ISO2 } from '@/lib/countries';
 import { toast } from 'sonner';
+import ProductCatalogPickerModal, { SelectedProductItem } from '@/components/products/ProductCatalogPickerModal';
 
 interface QuickEnquiryWizardModalProps {
   isOpen: boolean;
@@ -33,7 +38,7 @@ interface QuickEnquiryWizardModalProps {
   salespersons: Array<{ id: string; name: string; employeeCode?: string; role?: string }>;
 }
 
-const STEPS = ['Client', 'Interest', 'Source'];
+const STEPS = ['Client', 'Interest', 'Scope', 'Source'];
 
 const ATTACH_EXTENSIONS = [
   'pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg',
@@ -89,6 +94,8 @@ export default function QuickEnquiryWizardModal({
   const [sourceName, setSourceName] = useState('');
   const [selectedSalespersonId, setSelectedSalespersonId] = useState<string>('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [scopedItems, setScopedItems] = useState<SelectedProductItem[]>([]);
+  const [pickerOpen, setPickerOpen] = useState<boolean>(false);
 
   // Validation Errors
   const [nameError, setNameError] = useState(false);
@@ -122,6 +129,8 @@ export default function QuickEnquiryWizardModal({
         : (salespersons.length > 0 ? salespersons[0].id : '');
       setSelectedSalespersonId(defaultSp);
       setPendingFiles([]);
+      setScopedItems([]);
+      setPickerOpen(false);
       setNameError(false);
       setPhoneError('');
       setEmailWarn(false);
@@ -253,6 +262,11 @@ export default function QuickEnquiryWizardModal({
       setUnlocked(Math.max(unlocked, 2));
       return;
     }
+    if (slide === 2) {
+      setSlide(3);
+      setUnlocked(Math.max(unlocked, 3));
+      return;
+    }
     handleSubmit();
   };
 
@@ -304,6 +318,8 @@ export default function QuickEnquiryWizardModal({
     setSubmitStatusText('Creating...');
 
     try {
+      const totalOpp = scopedItems.reduce((acc, it) => acc + (it.total || (it.quantity * it.unitPrice)), 0);
+
       const payload = {
         clientId: selectedClientId || undefined,
         clientName: clientQuery.trim(),
@@ -315,6 +331,8 @@ export default function QuickEnquiryWizardModal({
         sourceCategoryId: selectedSourceCategoryId || undefined,
         sourceName: sourceName.trim() || undefined,
         salespersonId: selectedSalespersonId,
+        items: scopedItems.length > 0 ? scopedItems : undefined,
+        opportunityValue: totalOpp > 0 ? totalOpp : undefined,
       };
 
       const res = await fetch('/api/enquiries', {
@@ -375,25 +393,25 @@ export default function QuickEnquiryWizardModal({
 
   return (
     <div className="wizard-overlay">
-      <div className="wizard-modal" style={{ width: '100%', maxWidth: 560, maxHeight: '90vh', background: '#FFFFFF', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+      <div className="wizard-modal" style={{ width: '100%', maxWidth: 620, maxHeight: '90vh', background: '#FFFFFF', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
         {/* Header - Clean title as shown in Image 5 */}
         <div style={{ padding: '20px 28px 12px' }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111111' }}>Quick Enquiry</h2>
         </div>
 
-        {/* Milestone Stepper matching Image 5 */}
-        <div className="qe-stepper" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', paddingBottom: 16, borderBottom: '1px solid #E5DFD3', margin: '0 28px 14px' }}>
+        {/* Milestone Stepper */}
+        <div className="qe-stepper" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, paddingBottom: 16, borderBottom: '1px solid #E5DFD3', margin: '0 28px 14px' }}>
           {/* Connecting track line */}
-          <div style={{ position: 'absolute', top: 12, left: '16.6%', right: '16.6%', height: 1.5, background: '#DCD5C8', zIndex: 0 }} />
+          <div style={{ position: 'absolute', top: 12, left: `${100 / (STEPS.length * 2)}%`, right: `${100 / (STEPS.length * 2)}%`, height: 1.5, background: '#DCD5C8', zIndex: 0 }} />
           <div
             style={{
               position: 'absolute',
               top: 12,
-              left: '16.6%',
+              left: `${100 / (STEPS.length * 2)}%`,
               height: 1.5,
               background: '#27AE60',
               zIndex: 1,
-              width: `${(slide / (STEPS.length - 1)) * 66.8}%`,
+              width: `${(slide / (STEPS.length - 1)) * (100 - (100 / STEPS.length))}%`,
               transition: 'width 0.35s ease'
             }}
           />
@@ -692,9 +710,9 @@ export default function QuickEnquiryWizardModal({
                         style={{
                           padding: '9px 18px',
                           borderRadius: 24,
-                          border: isSelected ? '1.5px solid #FF7700' : '1px solid #DCD5C4',
-                          background: isSelected ? 'rgba(255, 119, 0, 0.12)' : '#FFFFFF',
-                          color: isSelected ? '#FF7700' : '#333333',
+                          border: isSelected ? '1.5px solid #000000' : '1px solid #DCD5C4',
+                          background: isSelected ? '#000000' : '#FFFFFF',
+                          color: isSelected ? '#FFFFFF' : '#333333',
                           fontWeight: 600,
                           fontSize: 13.5,
                           cursor: 'pointer',
@@ -708,12 +726,215 @@ export default function QuickEnquiryWizardModal({
                 </div>
               </div>
 
-              {/* SLIDE 2: SOURCE & SALESPERSON */}
+              {/* SLIDE 2: SCOPE & PRODUCTS (OPTIONAL) */}
               <div
                 key="slide-2"
                 className={`qe-slide ${slide === 2 ? 'qe-step-animated' : ''}`}
                 style={{
                   display: slide === 2 ? 'block' : 'none',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>
+                      Scope Products
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#8B8778', marginLeft: 6 }}>
+                        (Optional · {scopedItems.length} added)
+                      </span>
+                    </label>
+                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#8B8778' }}>
+                      Attach modular models from the catalog to auto-estimate opportunity value.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '7px 14px',
+                      borderRadius: 20,
+                      background: '#000000',
+                      color: '#FFFFFF',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Plus size={14} /> Pick from Catalog
+                  </button>
+                </div>
+
+                {scopedItems.length === 0 ? (
+                  <div
+                    style={{
+                      border: '1.5px dashed #DCD5C8',
+                      borderRadius: 10,
+                      padding: '32px 20px',
+                      textAlign: 'center',
+                      background: '#FAF8F4',
+                      margin: '12px 0',
+                    }}
+                  >
+                    <Package size={32} style={{ margin: '0 auto 8px auto', color: '#A39B8B' }} />
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#333333' }}>
+                      No specific products attached yet
+                    </div>
+                    <div style={{ fontSize: 12, color: '#8B8778', marginTop: 4, maxWidth: 360, margin: '4px auto 14px auto' }}>
+                      If client requirements are still preliminary, you can click Next to proceed with a general brief.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen(true)}
+                      style={{
+                        padding: '8px 20px',
+                        borderRadius: 8,
+                        border: '1px solid #000000',
+                        background: '#FFFFFF',
+                        color: '#000000',
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      + Browse 282 Catalog Items
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 250, overflowY: 'auto', margin: '12px 0' }}>
+                    {scopedItems.map((it, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: 8,
+                          background: '#FAF8F4',
+                          border: '1px solid #ECE7DC',
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                          {it.thumbnail ? (
+                            <img
+                              src={it.thumbnail}
+                              alt=""
+                              style={{ width: 38, height: 38, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                            />
+                          ) : (
+                            <div style={{ width: 38, height: 38, borderRadius: 6, background: '#EFEAE0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Package size={18} color="#8B8778" />
+                            </div>
+                          )}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {it.name}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#8B8778', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>{it.code}</span>
+                              {it.expectedDimensions && (
+                                <>
+                                  <span>·</span>
+                                  <span style={{ fontFamily: 'monospace' }}>{it.expectedDimensions}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Qty Stepper */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#FFFFFF', border: '1px solid #DCD5C8', borderRadius: 6, padding: '2px 4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...scopedItems];
+                              if (next[idx].quantity > 1) {
+                                next[idx].quantity -= 1;
+                                next[idx].total = next[idx].quantity * next[idx].unitPrice;
+                                setScopedItems(next);
+                              } else {
+                                setScopedItems(scopedItems.filter((_, i) => i !== idx));
+                              }
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span style={{ fontSize: 12.5, fontWeight: 700, minWidth: 20, textAlign: 'center' }}>
+                            {it.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...scopedItems];
+                              next[idx].quantity += 1;
+                              next[idx].total = next[idx].quantity * next[idx].unitPrice;
+                              setScopedItems(next);
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
+
+                        {/* Amount */}
+                        <div style={{ textAlign: 'right', minWidth: 70 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1A1A1A' }}>
+                            ₹{(it.total || (it.quantity * it.unitPrice)).toLocaleString('en-IN')}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: '#8B8778' }}>
+                            ₹{it.unitPrice.toLocaleString('en-IN')} each
+                          </div>
+                        </div>
+
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => setScopedItems(scopedItems.filter((_, i) => i !== idx))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A39B8B', padding: 4 }}
+                          title="Remove item"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {scopedItems.length > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      background: '#F0EFEA',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#1A1A1A',
+                    }}
+                  >
+                    <span>Estimated Opportunity Value:</span>
+                    <span style={{ fontSize: 15, color: '#1A1A1A' }}>
+                      ₹{scopedItems.reduce((acc, it) => acc + (it.total || (it.quantity * it.unitPrice)), 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* SLIDE 3: SOURCE & SALESPERSON */}
+              <div
+                key="slide-3"
+                className={`qe-slide ${slide === 3 ? 'qe-step-animated' : ''}`}
+                style={{
+                  display: slide === 3 ? 'block' : 'none',
                   width: '100%',
                   boxSizing: 'border-box'
                 }}
@@ -904,6 +1125,19 @@ export default function QuickEnquiryWizardModal({
           </div>
         </div>
       </div>
+
+      {/* Shared Master Product Catalog Picker Modal */}
+      <ProductCatalogPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelectProduct={(item) => {
+          setScopedItems(prev => [...prev, item]);
+        }}
+        initialCategoryId={selectedCategoryId}
+        title="Scope Products for Enquiry"
+        subtitle="Choose modular furniture models from the 282-item factory catalog."
+        actionButtonText="Add to Scope"
+      />
     </div>
   );
 }

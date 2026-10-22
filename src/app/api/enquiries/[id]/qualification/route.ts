@@ -86,6 +86,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               unitPrice: parseFloat(item.unitPrice || item.baseSellingRate || 0) || 0,
               total: (parseInt(item.quantity, 10) || 1) * (parseFloat(item.unitPrice || item.baseSellingRate || 0) || 0),
               comment: item.comment ? String(item.comment).trim() : null,
+              expectedDimensions: item.expectedDimensions || null,
+              materialPreference: item.materialPreference || null,
+              clientComment: item.clientComment || null,
               customizations: item.customizations || null,
             }))
           });

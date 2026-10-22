@@ -4,6 +4,8 @@ import QuotationsClient from './QuotationsClient';
 import { fetchQuotationsData } from '@/app/api/quotations/route';
 import { getAuthenticatedSession } from '@/lib/auth';
 
+export const instant = false;
+
 async function QuotationsDataLoader({
   searchParams,
 }: {

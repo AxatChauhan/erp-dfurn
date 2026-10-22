@@ -183,7 +183,11 @@ export async function GET(req: NextRequest) {
         lostNote: e.lostNote,
         lostAt: e.lostAt,
 
-        opportunityValue: e.opportunityValue,
+        opportunityValue: e.opportunityValue !== null && e.opportunityValue !== undefined
+          ? e.opportunityValue
+          : (e.items && e.items.length > 0)
+          ? e.items.reduce((sum: number, it: any) => sum + (it.total || ((it.quantity || 1) * (it.unitPrice || 0))), 0)
+          : null,
         hasCommunication: e.hasCommunication || (e.communicationLogs?.length > 0),
         stageDates: e.stageDates || {},
         origin: e.origin,
@@ -358,6 +362,8 @@ export async function POST(req: NextRequest) {
       enteredByName,
       origin,
       originKey,
+      items,
+      opportunityValue,
     } = body;
 
     const errors: string[] = [];
@@ -477,6 +483,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Process structured line items if provided
+    const rawItems = Array.isArray(items) ? items : [];
+    const itemCreates = rawItems.map((it: any) => {
+      const qty = Math.max(1, parseInt(it.quantity, 10) || 1);
+      const price = Math.max(0, parseFloat(it.unitPrice) || 0);
+      const tot = Math.max(0, parseFloat(it.total) || (qty * price));
+      return {
+        description: (it.name || it.description || 'Custom Modular Unit').trim(),
+        quantity: qty,
+        unitPrice: price,
+        total: tot,
+        expectedDimensions: it.expectedDimensions || null,
+        materialPreference: it.materialPreference || null,
+        clientComment: it.clientComment || null,
+        refType: it.refType || 'MasterProduct',
+        refId: it.refId || null,
+        customizations: it.customizations || undefined,
+      };
+    });
+
+    const computedOpportunity = opportunityValue !== undefined && opportunityValue !== null
+      ? Math.max(0, parseFloat(opportunityValue) || 0)
+      : itemCreates.length > 0
+      ? itemCreates.reduce((sum: number, it: any) => sum + it.total, 0)
+      : null;
+
     const createdEnquiry = await prisma.enquiry.create({
       data: {
         enquiryNumber,
@@ -497,7 +529,8 @@ export async function POST(req: NextRequest) {
         hasCommunication: false,
         history: [],
         stageDates: {},
-        opportunityValue: null,
+        opportunityValue: computedOpportunity,
+        ...(itemCreates.length > 0 ? { items: { create: itemCreates } } : {}),
       },
       include: {
         client: true,

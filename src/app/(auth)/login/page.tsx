@@ -12,6 +12,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setError('');
     setIsSigningIn(true);
 
@@ -28,7 +29,29 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.success) {
-        window.location.replace('/clients');
+        // Set client accessible fallback cookies for LAN IP support
+        try {
+          if (data.token) {
+            document.cookie = `auth_token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+          }
+          document.cookie = `user_role=${data.role}; path=/; max-age=604800; SameSite=Lax`;
+          document.cookie = `user_name=${encodeURIComponent(data.name)}; path=/; max-age=604800; SameSite=Lax`;
+          document.cookie = `user_id=${data.id}; path=/; max-age=604800; SameSite=Lax`;
+        } catch {}
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectParam = urlParams.get('redirect') || urlParams.get('next');
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
+        // On mobile, default to mobile app /app/enquiries unless explicitly redirecting to another /app route
+        let target = '/clients';
+        if (isMobile) {
+          target = redirectParam && redirectParam.startsWith('/app') ? redirectParam : '/app/enquiries';
+        } else {
+          target = redirectParam || '/clients';
+        }
+
+        window.location.href = target;
       } else {
         setError(data.error || 'Invalid username or password');
         setIsSigningIn(false);
@@ -46,7 +69,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex">
+    <div className="min-h-screen w-full flex flex-col md:flex-row overflow-x-hidden overflow-y-auto">
       {/* LEFT SIDE - BRANDING */}
       <div className="hidden md:flex w-1/2 bg-slate-900 flex-col items-center justify-center p-12 relative overflow-hidden">
         {/* Subtle decorative brand glows */}
@@ -68,8 +91,8 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT SIDE - LOGIN FORM */}
-      <div className="w-full md:w-1/2 bg-[#f4f3ed] flex flex-col items-center justify-center p-8 sm:p-12">
-        <div className="w-full max-w-sm">
+      <div className="w-full md:w-1/2 bg-[#f4f3ed] flex flex-col items-center justify-center p-5 sm:p-12 min-h-screen">
+        <div className="w-full max-w-sm my-auto">
           <div className="flex flex-col items-center mb-8">
             <div className="flex flex-col items-center mb-6">
               <img src={LOGO_DATA_URI} alt="d'furn" className="h-10 object-contain" />
@@ -136,11 +159,11 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => fillCredentials('admin', 'admin')}
+                onClick={() => fillCredentials('admin', 'admin123')}
                 className="p-2.5 bg-white border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 rounded-xl text-left transition-all cursor-pointer group"
               >
                 <div className="text-xs font-bold text-slate-800 group-hover:text-orange-600">Super Admin</div>
-                <div className="text-[11px] text-slate-400 font-mono">admin / admin</div>
+                <div className="text-[11px] text-slate-400 font-mono">admin / admin123</div>
               </button>
               <button
                 type="button"

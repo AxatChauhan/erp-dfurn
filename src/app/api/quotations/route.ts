@@ -318,27 +318,57 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Qualify the enquiry first: it needs a brief.' }, { status: 409 });
     }
 
-    // Default line items from enquiry
-    const rawItems = (enquiry.items || []).map((it, idx) => ({
-      lineId: crypto.randomUUID(),
-      refType: 'Variant',
-      refId: null,
-      snapshot: {
-        name: it.description || 'Custom Unit',
-        code: null,
-        unit: 'pcs',
-        imageUrl: null
-      },
-      description: it.clientComment || it.description || '',
-      quantity: Math.max(1, it.quantity || 1),
-      unitPrice: Math.max(0, it.unitPrice || 0),
-      discountType: null,
-      discountValue: 0,
-      customizations: [],
-      expectedDimensions: it.expectedDimensions || null,
-      materialPreference: it.materialPreference || null,
-      clientComment: it.clientComment || null
-    }));
+    // Look up any referenced MasterProducts from enquiry items
+    const refProductIds = (enquiry.items || [])
+      .map(it => it.refId)
+      .filter((id): id is string => Boolean(id));
+
+    let productsMap = new Map<string, any>();
+    if (refProductIds.length > 0) {
+      const prods = await prisma.masterProduct.findMany({
+        where: { id: { in: refProductIds } },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          thumbnail: true,
+          unitOfMeasurement: true,
+          baseSellingRate: true,
+          nakedDimensions: true,
+        }
+      });
+      prods.forEach(p => productsMap.set(p.id, p));
+    }
+
+    // Default line items inherited from enquiry
+    const rawItems = (enquiry.items || []).map((it) => {
+      const prod = it.refId ? productsMap.get(it.refId) : null;
+      const unitRate = it.unitPrice > 0 ? it.unitPrice : (prod?.baseSellingRate || 0);
+      const prodDim = prod?.nakedDimensions
+        ? `L ${prod.nakedDimensions.l || 0} × B ${prod.nakedDimensions.w || 0} × H ${prod.nakedDimensions.h || 0} mm`
+        : null;
+
+      return {
+        lineId: crypto.randomUUID(),
+        refType: it.refType || (prod ? 'MasterProduct' : 'Variant'),
+        refId: it.refId || null,
+        snapshot: {
+          name: prod?.name || it.description || 'Custom Unit',
+          code: prod?.code || null,
+          unit: prod?.unitOfMeasurement || 'Nos',
+          imageUrl: prod?.thumbnail || null
+        },
+        description: it.clientComment || it.description || prod?.name || '',
+        quantity: Math.max(1, it.quantity || 1),
+        unitPrice: Math.max(0, unitRate),
+        discountType: null,
+        discountValue: 0,
+        customizations: it.customizations || [],
+        expectedDimensions: it.expectedDimensions || prodDim || null,
+        materialPreference: it.materialPreference || null,
+        clientComment: it.clientComment || null
+      };
+    });
 
     if (rawItems.length === 0) {
       rawItems.push({

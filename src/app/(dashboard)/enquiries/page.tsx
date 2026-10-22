@@ -5,6 +5,8 @@ import EnquiriesClient from './EnquiriesClient';
 import { fiscalYearOf, currentFiscalYearKey } from '@/lib/dates';
 import { getAuthenticatedSession } from '@/lib/auth';
 
+export const instant = false;
+
 async function EnquiriesDataLoader({
   searchParams,
 }: {

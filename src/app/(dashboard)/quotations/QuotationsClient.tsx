@@ -16,7 +16,8 @@ import {
   Search,
   MessageSquare,
   Download,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import { formatDate, currentFiscalYearKey, MONTH_NAMES, fiscalYearOf } from '@/lib/dates';
 import { toast } from 'sonner';
@@ -502,24 +503,96 @@ export default function QuotationsClient({
             </button>
           )}
         </div>
+      </div>
 
-        {/* Right Actions: Waiting count + New Quotation button */}
-        <div className="clt-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {waitingCount > 0 && (
-            <span className="qt-waiting">
-              {waitingCount} qualified {waitingCount === 1 ? 'enquiry' : 'enquiries'} waiting
-            </span>
+      {/* Row 2: Search Input and + New Quotation button side-by-side (matching Enquiries module) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', width: 280 }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: '#A39B8B' }} />
+          <input
+            type="text"
+            className="field-input"
+            placeholder="Search quotation, client or code..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              paddingLeft: 34,
+              paddingRight: search ? 30 : 12,
+              height: 38,
+              borderRadius: 8,
+              fontSize: 13,
+              background: '#FFFFFF',
+              border: '1px solid #DCD5C4',
+              width: '100%'
+            }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: 9,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#A39B8B',
+                padding: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
           )}
-
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setNewModalOpen(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Plus size={15} /> New quotation
-          </button>
         </div>
+
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => setNewModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            height: 38,
+            padding: '0 18px',
+            borderRadius: 8,
+            background: '#FF7700',
+            border: 'none',
+            color: '#FFFFFF',
+            fontSize: 13.5,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(255,119,0,0.2)'
+          }}
+        >
+          <Plus size={16} /> New Quotation
+        </button>
+
+        {waitingCount > 0 && (
+          <span
+            className="qt-waiting"
+            style={{
+              marginLeft: 4,
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#FF7700',
+              background: '#FFF4EA',
+              padding: '6px 14px',
+              borderRadius: 20,
+              border: '1px solid #FFE0C2',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            {waitingCount} qualified {waitingCount === 1 ? 'enquiry' : 'enquiries'} waiting
+          </span>
+        )}
       </div>
 
       {/* ===================================================================
