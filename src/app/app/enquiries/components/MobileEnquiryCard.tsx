@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
-import { MessageCircle, Phone, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { MessageCircle, Phone, ChevronRight, Download, Loader2 } from 'lucide-react';
+import { generateEnquiryPDF } from '@/lib/enquiries/enquiryPdfGenerator';
+import { toast } from 'sonner';
 
 interface MobileEnquiryCardProps {
   enquiry: any;
@@ -11,6 +13,7 @@ interface MobileEnquiryCardProps {
 const STAGES = ['New', 'Qualified', 'Quoted', 'Converted'] as const;
 
 export default function MobileEnquiryCard({ enquiry, onSelect }: MobileEnquiryCardProps) {
+  const [downloading, setDownloading] = useState(false);
   const clientName = enquiry.client?.name || enquiry.rawName || 'Direct Client';
   const phone = Array.isArray(enquiry.client?.phones) && enquiry.client.phones.length > 0
     ? enquiry.client.phones[0]
@@ -19,6 +22,19 @@ export default function MobileEnquiryCard({ enquiry, onSelect }: MobileEnquiryCa
   const categoryName = enquiry.category?.name || 'Modular Furniture';
   const stage = enquiry.stage || 'New';
   const isLost = enquiry.outcome === 'Lost';
+
+  const handleDownloadPDF = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDownloading(true);
+    try {
+      await generateEnquiryPDF(enquiry, { autoDownload: true });
+      toast.success('Enquiry PDF generated');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   // Format currency with Indian grouping
   const formatAmount = (val: number | null | undefined) => {
@@ -112,6 +128,17 @@ export default function MobileEnquiryCard({ enquiry, onSelect }: MobileEnquiryCa
       {/* Quick Action Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-50 text-[#FF7700] hover:bg-orange-100 text-[11px] font-semibold transition-colors cursor-pointer"
+            title="Download Enquiry PDF"
+          >
+            {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            <span>PDF</span>
+          </button>
+
           {cleanPhone ? (
             <>
               <a

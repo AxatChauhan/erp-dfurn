@@ -47,12 +47,18 @@ export async function POST(req: Request) {
       const dbPasswordMatch = verifyPassword(password, user.password);
 
       if (dbPasswordMatch) {
+        const defaultSalesEmployeeId = lowerUsername === 'tester_user'
+          ? '6a111f10-c22d-47ba-894b-f2177110bb7f'
+          : lowerUsername === 'sales'
+          ? '9a2d3839-aef2-47b3-a173-7026d8e3bd68'
+          : null;
+
         authenticatedUser = {
           id: user.id,
           name: user.name,
           username: user.username,
           role: user.role,
-          employeeId: user.employeeId || null,
+          employeeId: user.employeeId || defaultSalesEmployeeId,
         };
 
         // If password was stored in plaintext, auto-upgrade to salted PBKDF2 hash
@@ -73,17 +79,25 @@ export async function POST(req: Request) {
       );
 
       if (fallbackPasswordMatch) {
+        const defaultSalesEmployeeId = lowerUsername === 'tester_user'
+          ? '6a111f10-c22d-47ba-894b-f2177110bb7f'
+          : lowerUsername === 'sales'
+          ? '9a2d3839-aef2-47b3-a173-7026d8e3bd68'
+          : null;
+
         let createdId = `usr-${lowerUsername}`;
         try {
           const created = await prisma.user.upsert({
             where: { username: lowerUsername },
-            update: {},
+            update: {
+              ...(defaultSalesEmployeeId ? { employeeId: defaultSalesEmployeeId } : {})
+            },
             create: {
               username: lowerUsername,
               name: fallback.name,
               password: hashPassword(password),
               role: fallback.role,
-              employeeId: lowerUsername === 'sales' ? '85f1a53f-c3d7-4da1-b6e9-2067151e688b' : null,
+              employeeId: defaultSalesEmployeeId,
             },
           });
           createdId = created.id;
@@ -96,7 +110,7 @@ export async function POST(req: Request) {
           name: fallback.name,
           username: lowerUsername,
           role: fallback.role,
-          employeeId: lowerUsername === 'sales' ? '85f1a53f-c3d7-4da1-b6e9-2067151e688b' : null,
+          employeeId: defaultSalesEmployeeId,
         };
       }
     }
@@ -129,7 +143,7 @@ export async function POST(req: Request) {
 
     const cookieOptions = {
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 604800, // 7 days in seconds
       sameSite: 'lax' as const,
     };
 

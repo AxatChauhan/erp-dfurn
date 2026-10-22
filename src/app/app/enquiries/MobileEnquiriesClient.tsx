@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import MobileEnquiryCard from './components/MobileEnquiryCard';
-import MobileQuickEnquiryWizard from './components/MobileQuickEnquiryWizard';
 import MobileEnquiryDetailSheet from './components/MobileEnquiryDetailSheet';
-import { useMobileApp } from '../MobileAppContext';
 
 interface MobileEnquiriesClientProps {
   initialEnquiries: any[];
@@ -28,21 +26,10 @@ export default function MobileEnquiriesClient({
   lostReasons,
   userRole,
 }: MobileEnquiriesClientProps) {
-  const { activeModal, closeModal } = useMobileApp();
-
   const [enquiries, setEnquiries] = useState<any[]>(initialEnquiries || []);
   const [search, setSearch] = useState('');
   const [filterBucket, setFilterBucket] = useState<string>('All');
   const [selectedEnquiry, setSelectedEnquiry] = useState<any | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
-
-  // Trigger wizard if activeModal === 'NEW_ENQUIRY'
-  useEffect(() => {
-    if (activeModal === 'NEW_ENQUIRY') {
-      setWizardOpen(true);
-      closeModal();
-    }
-  }, [activeModal, closeModal]);
 
   // Filtered enquiries
   const filteredEnquiries = useMemo(() => {
@@ -139,7 +126,7 @@ export default function MobileEnquiriesClient({
         <div className="bg-white rounded-2xl p-8 text-center border border-gray-200 mt-2">
           <p className="text-xs font-semibold text-gray-700 mb-1">No enquiries found</p>
           <p className="text-[11px] text-gray-400">
-            {search ? 'Try clearing your search query' : 'Tap the + button below to create a lead'}
+            {search ? 'Try clearing your search query' : 'No active enquiries in this pipeline'}
           </p>
         </div>
       ) : (
@@ -163,16 +150,6 @@ export default function MobileEnquiriesClient({
           lostReasons={lostReasons}
         />
       )}
-
-      {/* Quick Enquiry Wizard Modal */}
-      <MobileQuickEnquiryWizard
-        isOpen={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        onSuccess={handleCreated}
-        categories={categories}
-        salespersons={salespersons}
-        clients={clients}
-      />
     </div>
   );
 }

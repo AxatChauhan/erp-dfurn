@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import MobileQuotationCard from './components/MobileQuotationCard';
 import MobileQuotationDetailSheet from './components/MobileQuotationDetailSheet';
-import { useMobileApp } from '../MobileAppContext';
-import { toast } from 'sonner';
 
 interface MobileQuotationsClientProps {
   initialQuotations: any[];
@@ -20,20 +18,10 @@ export default function MobileQuotationsClient({
   salespersons,
   userRole,
 }: MobileQuotationsClientProps) {
-  const { activeModal, closeModal } = useMobileApp();
-
   const [quotations, setQuotations] = useState<any[]>(initialQuotations || []);
   const [search, setSearch] = useState('');
   const [filterBucket, setFilterBucket] = useState<string>('All');
   const [selectedQuotation, setSelectedQuotation] = useState<any | null>(null);
-
-  // Handle activeModal === 'NEW_QUOTATION'
-  useEffect(() => {
-    if (activeModal === 'NEW_QUOTATION') {
-      toast.info('To create a quotation, select a qualified enquiry from the Enquiries tab.');
-      closeModal();
-    }
-  }, [activeModal, closeModal]);
 
   // Filtered quotations
   const filteredQuotations = useMemo(() => {

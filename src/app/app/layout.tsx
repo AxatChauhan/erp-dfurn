@@ -4,7 +4,6 @@ import { verifySessionToken } from '@/lib/session';
 import { MobileAppProvider } from './MobileAppContext';
 import MobileTopBar from './components/MobileTopBar';
 import MobileBottomNav from './components/MobileBottomNav';
-import MobileActionSheet from './components/MobileActionSheet';
 
 export const instant = false;
 
@@ -36,7 +35,6 @@ export default async function MobileLayout({
           </Suspense>
         </main>
         <MobileBottomNav />
-        <MobileActionSheet />
       </div>
     </MobileAppProvider>
   );

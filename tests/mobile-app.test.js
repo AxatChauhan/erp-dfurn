@@ -128,18 +128,58 @@ describe("D'furn Mobile App (/app) & Desktop Promo Banner Suite", () => {
     scanFiles(mobileDir);
   });
 
-  test('APP-08: Owner UX Rule 3 - Black active state and Orange CTA verification', () => {
+  test('APP-08: Owner UX Rule 3 - Black active state verification', () => {
     const navFile = path.join(__dirname, '..', 'src', 'app', 'app', 'components', 'MobileBottomNav.tsx');
     const content = fs.readFileSync(navFile, 'utf8');
     assert.ok(content.includes('text-black font-bold'), 'Selected tab must be black');
-    assert.ok(content.includes('bg-[#FF7700]'), 'FAB action button must be brand orange');
+    assert.ok(content.includes('bg-[#EAE8DF]'), 'Selected active background must be subtle cream/gray');
   });
 
-  test('APP-09: Action Selector Sheet enforces deliberate choice rather than direct intake', () => {
-    const actionSheetFile = path.join(__dirname, '..', 'src', 'app', 'app', 'components', 'MobileActionSheet.tsx');
-    const content = fs.readFileSync(actionSheetFile, 'utf8');
-    assert.ok(content.includes('NEW_ENQUIRY'));
-    assert.ok(content.includes('NEW_QUOTATION'));
-    assert.ok(content.includes('Quick Action'));
+  test('APP-09: View-Only Companion Mode enforces 2-tab navigation without creation FAB', () => {
+    const navFile = path.join(__dirname, '..', 'src', 'app', 'app', 'components', 'MobileBottomNav.tsx');
+    const content = fs.readFileSync(navFile, 'utf8');
+    assert.ok(content.includes('/app/enquiries'), 'Must contain Enquiries tab');
+    assert.ok(content.includes('/app/quotations'), 'Must contain Quotations tab');
+    assert.ok(!content.includes('openActionSheet'), 'Creation action sheet trigger must be absent');
+  });
+
+  test('APP-10: Authenticated Tester_User can load /app/enquiries and /app/quotations', async () => {
+    const testUserLogin = await fetch(`${BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'Tester_User', password: 'Tester_User' }),
+    });
+    assert.equal(testUserLogin.status, 200);
+    const testUserCookies = extractCookies(testUserLogin);
+    const testUserCookieStr = cookieHeader(testUserCookies);
+
+    const enqRes = await fetch(`${BASE_URL}/app/enquiries`, {
+      headers: { Cookie: testUserCookieStr },
+    });
+    assert.equal(enqRes.status, 200);
+
+    const quoteRes = await fetch(`${BASE_URL}/app/quotations`, {
+      headers: { Cookie: testUserCookieStr },
+    });
+    assert.equal(quoteRes.status, 200);
+  });
+
+  test('APP-11: Enquiry PDF Generator module exports generateEnquiryPDF', () => {
+    const genFile = path.join(__dirname, '..', 'src', 'lib', 'enquiries', 'enquiryPdfGenerator.ts');
+    assert.ok(fs.existsSync(genFile), 'enquiryPdfGenerator.ts must exist');
+    const content = fs.readFileSync(genFile, 'utf8');
+    assert.ok(content.includes('export async function generateEnquiryPDF'), 'Must export generateEnquiryPDF');
+    assert.ok(!content.includes('\u2014'), 'Must have zero em dashes');
+  });
+
+  test('APP-12: Mobile cards provide 1-click PDF export buttons', () => {
+    const enqCardFile = path.join(__dirname, '..', 'src', 'app', 'app', 'enquiries', 'components', 'MobileEnquiryCard.tsx');
+    const enqCardContent = fs.readFileSync(enqCardFile, 'utf8');
+    assert.ok(enqCardContent.includes('generateEnquiryPDF'), 'Enquiry card must wire generateEnquiryPDF');
+    assert.ok(enqCardContent.includes('Download Enquiry PDF') || enqCardContent.includes('PDF'), 'Enquiry card must have PDF CTA');
+
+    const quoteCardFile = path.join(__dirname, '..', 'src', 'app', 'app', 'quotations', 'components', 'MobileQuotationCard.tsx');
+    const quoteCardContent = fs.readFileSync(quoteCardFile, 'utf8');
+    assert.ok(quoteCardContent.includes('generateQuotationPDF'), 'Quotation card must wire generateQuotationPDF');
   });
 });

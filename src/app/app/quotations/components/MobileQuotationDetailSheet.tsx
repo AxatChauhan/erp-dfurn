@@ -1,24 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Download, MessageCircle, Check, Ban, Loader2, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Download, MessageCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { generateQuotationPDF } from '@/lib/quotations/quotePdfGenerator';
 import { toast } from 'sonner';
 
 interface MobileQuotationDetailSheetProps {
   quotation: any;
   onClose: () => void;
-  onUpdate: (updated: any) => void;
-  userRole: string;
+  onUpdate?: (updated: any) => void;
+  userRole?: string;
 }
 
 export default function MobileQuotationDetailSheet({
   quotation,
   onClose,
-  onUpdate,
-  userRole,
 }: MobileQuotationDetailSheetProps) {
-  const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [itemsExpanded, setItemsExpanded] = useState(true);
 
@@ -67,45 +64,16 @@ export default function MobileQuotationDetailSheet({
     window.open(url, '_blank');
   };
 
-  // Execute Quotation Actions (VERIFY, APPROVE, REJECT, SEND, CONVERT)
-  const handleExecuteAction = async (action: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/quotations/${quotation.id}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || `Action ${action} failed`);
-      }
-
-      toast.success(`Quotation updated: ${action}`);
-      const newStatus = action === 'APPROVE' ? 'Approved' : action === 'REJECT' ? 'Not Approved' : action === 'VERIFY' ? 'Admin Approval Required' : status;
-      onUpdate({ ...quotation, status: newStatus });
-      onClose();
-    } catch (err: any) {
-      toast.error(err.message || 'Error executing quotation action');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isSuperAdmin = userRole === 'SUPER_ADMIN';
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs transition-opacity"
       onClick={onClose}
     >
-      {/* Screen-blocking mutation overlay */}
-      {(loading || downloading) && (
+      {/* Screen-blocking overlay */}
+      {downloading && (
         <div className="fixed inset-0 z-60 bg-black/70 flex flex-col items-center justify-center text-white">
           <Loader2 className="w-8 h-8 animate-spin text-[#FF7700] mb-2" />
-          <span className="text-sm font-semibold tracking-wide">
-            {downloading ? 'Generating PDF...' : 'Updating Quotation...'}
-          </span>
+          <span className="text-sm font-semibold tracking-wide">Generating PDF...</span>
         </div>
       )}
 
@@ -135,7 +103,8 @@ export default function MobileQuotationDetailSheet({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100"
+            className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 cursor-pointer"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -148,6 +117,7 @@ export default function MobileQuotationDetailSheet({
             <button
               type="button"
               onClick={handleDownloadPDF}
+              disabled={downloading}
               className="flex-1 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF7700] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />
@@ -239,67 +209,31 @@ export default function MobileQuotationDetailSheet({
             </div>
           </div>
 
-          {/* Admin Approval RBAC Notice */}
-          {status === 'Admin Approval Required' && !isSuperAdmin && (
-            <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 flex items-center gap-2 text-xs text-[#FF7700]">
-              <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-              <span>Pending Super Admin approval · Sales cannot approve</span>
-            </div>
-          )}
+          {/* Status pill */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600">
+            <span>Status:</span>
+            <span className="font-bold text-gray-900">{status}</span>
+          </div>
         </div>
 
-        {/* Footer Actions / RBAC Approval Gate */}
+        {/* View-Only Bottom Actions */}
         <div className="pt-3 border-t border-gray-100 space-y-2">
-          {status === 'Admin Approval Required' && isSuperAdmin && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleExecuteAction('REJECT')}
-                className="flex-1 py-2.5 rounded-xl bg-[#EB5757] hover:bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Ban className="w-3.5 h-3.5" />
-                <span>Reject</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExecuteAction('APPROVE')}
-                className="flex-1 py-2.5 rounded-xl bg-[#27AE60] hover:bg-green-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-              >
-                <Check className="w-4 h-4 stroke-[2.5]" />
-                <span>Approve Quote</span>
-              </button>
-            </div>
-          )}
-
-          {status === 'Draft' && (
-            <button
-              type="button"
-              onClick={() => handleExecuteAction('VERIFY')}
-              className="w-full py-2.5 rounded-xl bg-black hover:bg-gray-800 text-white text-xs font-bold transition-colors cursor-pointer"
-            >
-              Submit for Verification
-            </button>
-          )}
-
-          {status === 'Approved' && (
-            <button
-              type="button"
-              onClick={() => handleExecuteAction('SEND')}
-              className="w-full py-2.5 rounded-xl bg-[#FF7700] hover:bg-[#E06900] text-white text-xs font-bold transition-colors cursor-pointer"
-            >
-              Mark as Sent to Client
-            </button>
-          )}
-
-          {status === 'Sent' && (
-            <button
-              type="button"
-              onClick={() => handleExecuteAction('CONVERT')}
-              className="w-full py-2.5 rounded-xl bg-[#27AE60] hover:bg-green-600 text-white text-xs font-bold transition-colors cursor-pointer"
-            >
-              Convert Quotation (Won)
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="w-full py-3 rounded-xl bg-[#FF7700] hover:bg-[#E06900] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+          >
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>Download Quotation PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
