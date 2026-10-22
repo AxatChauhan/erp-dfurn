@@ -1,16 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-
-export type MobileActionType = 'NEW_ENQUIRY' | 'NEW_QUOTATION' | null;
+import React, { createContext, useContext, useMemo } from 'react';
 
 interface MobileAppContextType {
-  isActionSheetOpen: boolean;
-  openActionSheet: () => void;
-  closeActionSheet: () => void;
-  activeModal: MobileActionType;
-  openModal: (modal: MobileActionType) => void;
-  closeModal: () => void;
   userRole: string;
   userName: string;
 }
@@ -26,31 +18,12 @@ export function MobileAppProvider({
   userRole: string;
   userName: string;
 }) {
-  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState<MobileActionType>(null);
-
-  const openActionSheet = useCallback(() => setIsActionSheetOpen(true), []);
-  const closeActionSheet = useCallback(() => setIsActionSheetOpen(false), []);
-
-  const openModal = useCallback((modal: MobileActionType) => {
-    setIsActionSheetOpen(false);
-    setActiveModal(modal);
-  }, []);
-
-  const closeModal = useCallback(() => setActiveModal(null), []);
-
   const value = useMemo(
     () => ({
-      isActionSheetOpen,
-      openActionSheet,
-      closeActionSheet,
-      activeModal,
-      openModal,
-      closeModal,
       userRole,
       userName,
     }),
-    [isActionSheetOpen, openActionSheet, closeActionSheet, activeModal, openModal, closeModal, userRole, userName]
+    [userRole, userName]
   );
 
   return (

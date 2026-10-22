@@ -2,7 +2,7 @@
 // Target mobile routes: /app/enquiries and /app/quotations
 // Does NOT intercept or cache dynamic HTML requests to prevent SSR / HMR issues.
 
-const CACHE_NAME = 'dfurn-app-v2';
+const CACHE_NAME = 'dfurn-app-v3';
 const APP_SHELL_ROUTES = [
   '/app/enquiries',
   '/app/quotations',
