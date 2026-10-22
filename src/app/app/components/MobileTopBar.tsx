@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Monitor, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useMobileApp } from '../MobileAppContext';
 
 export default function MobileTopBar() {
@@ -44,15 +43,6 @@ export default function MobileTopBar() {
 
       {/* Right Actions */}
       <div className="flex items-center gap-2">
-        <Link
-          href="/clients"
-          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 rounded-lg border border-gray-200 shadow-2xs transition-colors"
-          title="Switch to Desktop ERP"
-        >
-          <Monitor className="w-3 h-3 text-gray-500" />
-          <span className="hidden xs:inline">Desktop</span>
-        </Link>
-
         {/* User Badge */}
         <div 
           className="w-7 h-7 rounded-full bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shadow-2xs"

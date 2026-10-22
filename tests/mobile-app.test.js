@@ -107,7 +107,7 @@ describe("D'furn Mobile App (/app) & Desktop Promo Banner Suite", () => {
     assert.ok(html.includes("Open Mobile App"));
   });
 
-  test('APP-07: Owner UX Rule 2 - Zero em dashes (—) in mobile app source code', () => {
+  test('APP-07: Owner UX Rule 2 · Zero em dashes in mobile app source code', () => {
     const mobileDir = path.join(__dirname, '..', 'src', 'app', 'app');
     function scanFiles(dir) {
       const files = fs.readdirSync(dir);
@@ -118,9 +118,9 @@ describe("D'furn Mobile App (/app) & Desktop Promo Banner Suite", () => {
         } else if (file.endsWith('.ts') || file.endsWith('.tsx')) {
           const content = fs.readFileSync(fullPath, 'utf8');
           assert.equal(
-            content.includes('—'),
+            content.includes('\u2014'),
             false,
-            `Banned em dash (—) detected in mobile file: ${fullPath}`
+            `Banned em dash detected in mobile file: ${fullPath}`
           );
         }
       }
@@ -181,5 +181,12 @@ describe("D'furn Mobile App (/app) & Desktop Promo Banner Suite", () => {
     const quoteCardFile = path.join(__dirname, '..', 'src', 'app', 'app', 'quotations', 'components', 'MobileQuotationCard.tsx');
     const quoteCardContent = fs.readFileSync(quoteCardFile, 'utf8');
     assert.ok(quoteCardContent.includes('generateQuotationPDF'), 'Quotation card must wire generateQuotationPDF');
+  });
+
+  test('APP-13: MobileTopBar strictly isolates mobile app experience (no desktop switch button)', () => {
+    const topBarFile = path.join(__dirname, '..', 'src', 'app', 'app', 'components', 'MobileTopBar.tsx');
+    const content = fs.readFileSync(topBarFile, 'utf8');
+    assert.ok(!content.includes('/clients'), 'Must not link back to desktop /clients');
+    assert.ok(!content.includes('Desktop'), 'Must not have desktop switch button');
   });
 });
