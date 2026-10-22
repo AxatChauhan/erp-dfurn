@@ -23,6 +23,19 @@ export async function GET() {
                 _count: {
                   select: { masterProducts: true },
                 },
+                masterProducts: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    baseSellingRate: true,
+                    thumbnail: true,
+                    _count: {
+                      select: { variants: true },
+                    },
+                  },
+                  take: 8,
+                },
               },
             },
             _count: {
