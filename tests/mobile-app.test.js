@@ -96,15 +96,15 @@ describe("D'furn Mobile App (/app) & Desktop Promo Banner Suite", () => {
     assert.ok(html.includes("D'FURN") || html.includes('Quotations'));
   });
 
-  test('APP-06: Desktop layout renders persistent mobile app promotion banner', async () => {
+  test('APP-06: Sidebar renders mobile app companion launcher', async () => {
     const res = await fetch(`${BASE_URL}/clients`, {
       headers: { Cookie: adminCookieStr },
     });
     assert.equal(res.status, 200);
     const html = await res.text();
-    assert.ok(html.includes("Mobile App Available"));
+    assert.ok(html.includes("Mobile App"));
     assert.ok(html.includes("Scan QR"));
-    assert.ok(html.includes("Open Mobile App"));
+    assert.ok(html.includes("/app/enquiries"));
   });
 
   test('APP-07: Owner UX Rule 2 · Zero em dashes in mobile app source code', () => {

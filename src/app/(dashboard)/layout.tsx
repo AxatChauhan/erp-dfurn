@@ -2,7 +2,6 @@ import React, { Suspense } from 'react';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import NavigationProgressBar from './NavigationProgressBar';
-import DesktopAppPromoBanner from './DesktopAppPromoBanner';
 import { cookies } from 'next/headers';
 import { verifySessionToken } from '@/lib/session';
 
@@ -25,7 +24,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DesktopAppPromoBanner />
         <TopHeader userName={userName} />
 
         {/* PAGE CONTENT */}

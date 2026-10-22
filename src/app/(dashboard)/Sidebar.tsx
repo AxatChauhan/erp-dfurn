@@ -9,17 +9,28 @@ import {
   Shield, 
   ChevronDown, 
   ChevronRight, 
-  Briefcase
+  Briefcase,
+  Smartphone,
+  QrCode,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Sidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Clear optimistic active state whenever the route change commits
   useEffect(() => {
@@ -88,7 +99,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
         )}
 
         {/* 3. NAVIGATION ITEMS */}
-        <nav className="flex-1 py-3 flex flex-col gap-1 overflow-hidden select-none">
+        <nav className="flex-1 py-3 flex flex-col gap-1 overflow-y-auto select-none">
           
           {/* Dashboard */}
           <Link 
@@ -392,6 +403,126 @@ export default function Sidebar({ userRole }: { userRole: string }) {
             </Link>
           )}
         </nav>
+
+        {/* 4. MOBILE APP LAUNCHER */}
+        <div className="p-3 border-t border-gray-100 shrink-0">
+          {isHovered ? (
+            <div className="bg-[#FAF9F5] border border-gray-200/80 rounded-xl p-2.5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Smartphone size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-gray-900 leading-tight truncate">
+                    Mobile App
+                  </div>
+                  <div className="text-[10px] text-gray-500 leading-tight truncate">
+                    Companion on the go
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(true)}
+                  className="flex-1 flex items-center justify-center gap-1 py-1 px-2 text-[11px] font-semibold bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg shadow-2xs transition-colors cursor-pointer"
+                  title="Scan QR code with your phone"
+                >
+                  <QrCode size={12} className="text-orange-500" />
+                  <span>Scan QR</span>
+                </button>
+                <Link
+                  href="/app/enquiries"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1 py-1 px-2 text-[11px] font-semibold bg-black hover:bg-gray-800 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                  title="Open Mobile App in new tab"
+                >
+                  <span>Open</span>
+                  <ExternalLink size={11} />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowQrModal(true)}
+                title="D'furn Mobile App (Scan QR)"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-orange-50 hover:text-orange-600 transition-colors cursor-pointer"
+              >
+                <Smartphone size={20} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* QR Code Modal (Rendered via Portal) */}
+        {mounted && showQrModal && createPortal(
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+            onClick={() => setShowQrModal(false)}
+          >
+            <div 
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-200 text-center relative animate-in fade-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setShowQrModal(false)}
+                className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Smartphone className="w-6 h-6 text-orange-500" />
+              </div>
+
+              <h3 className="text-base font-bold text-gray-900 mb-1">
+                Open D'furn on Mobile
+              </h3>
+              <p className="text-xs text-gray-600 mb-4">
+                Scan this QR code with your smartphone camera to access Enquiries and Quotations on the go.
+              </p>
+
+              <div className="bg-[#FAF9F5] p-4 rounded-xl border border-gray-200 inline-block mb-4 shadow-inner">
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Foptimistic-carson-one.vercel.app%2Fapp%2Fenquiries"
+                  alt="QR Code to open D'furn Mobile App"
+                  width={180}
+                  height={180}
+                  className="w-[180px] h-[180px] mx-auto rounded"
+                />
+              </div>
+
+              <div className="text-[11px] text-gray-500 mb-4 bg-gray-50 py-1.5 px-2 rounded font-mono truncate">
+                https://optimistic-carson-one.vercel.app/app/enquiries
+              </div>
+
+              <div className="flex gap-2">
+                <Link
+                  href="/app/enquiries"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 text-xs font-semibold bg-black hover:bg-gray-800 text-white rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Open in Tab</span>
+                  <ExternalLink size={13} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(false)}
+                  className="px-4 py-2 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       </aside>
     </div>
   );
