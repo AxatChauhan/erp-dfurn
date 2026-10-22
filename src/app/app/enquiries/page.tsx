@@ -30,8 +30,14 @@ async function MobileEnquiriesDataLoader() {
   await connection();
   const session = await getAuthenticatedSession();
 
-  // Mobile App View-Only Mode: All authenticated users can view the full active pipeline
+  // Mobile App View-Only Mode: Scoped by role for Sales Rep data isolation
   const where: any = {};
+  if (session?.role === 'SALES') {
+    where.OR = [
+      ...(session.employeeId ? [{ salespersonId: session.employeeId }] : []),
+      ...(session.userId ? [{ enteredById: session.userId }] : [])
+    ];
+  }
 
   const [rawEnquiries, categories, sourceCategories, employees, clients, lostReasons] =
     await Promise.all([

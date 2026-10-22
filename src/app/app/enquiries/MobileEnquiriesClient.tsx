@@ -46,7 +46,7 @@ export default function MobileEnquiriesClient({
         const q = search.toLowerCase();
         const clientName = (e.client?.name || e.rawName || '').toLowerCase();
         const phone = (Array.isArray(e.client?.phones) ? e.client.phones[0] : e.rawPhone || '').toLowerCase();
-        const code = (e.enquiryCode || '').toLowerCase();
+        const code = (e.enquiryNumber || e.enquiryCode || '').toLowerCase();
         const cat = (e.category?.name || '').toLowerCase();
         if (
           !clientName.includes(q) &&

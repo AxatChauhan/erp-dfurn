@@ -68,7 +68,7 @@ export default function MobileEnquiryDetailSheet({
         <div className="flex items-start justify-between pb-3 border-b border-gray-100">
           <div>
             <div className="text-[11px] font-mono text-gray-500 uppercase tracking-wider">
-              {enquiry.enquiryCode || 'ENQ–DRAFT'}
+              {enquiry.enquiryNumber || enquiry.enquiryCode || 'ENQ–DRAFT'}
             </div>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               {clientName}
@@ -145,8 +145,8 @@ export default function MobileEnquiryDetailSheet({
             <div className="flex justify-between">
               <span className="text-gray-500">Opportunity Value:</span>
               <span className="font-bold text-gray-900">
-                {enquiry.estimatedValue
-                  ? '₹' + Math.round(Number(enquiry.estimatedValue)).toLocaleString('en-IN')
+                {(enquiry.opportunityValue ?? enquiry.estimatedBudget ?? enquiry.estimatedValue)
+                  ? '₹' + Math.round(Number(enquiry.opportunityValue ?? enquiry.estimatedBudget ?? enquiry.estimatedValue)).toLocaleString('en-IN')
                   : '–'}
               </span>
             </div>
@@ -162,7 +162,7 @@ export default function MobileEnquiryDetailSheet({
           <div>
             <div className="text-xs font-semibold text-gray-700 mb-1">Project Scope / Brief</div>
             <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-700 border border-gray-200 whitespace-pre-wrap leading-relaxed">
-              {enquiry.scopeBrief || 'No brief description recorded.'}
+              {enquiry.brief || enquiry.scopeBrief || 'No brief description recorded.'}
             </div>
           </div>
 

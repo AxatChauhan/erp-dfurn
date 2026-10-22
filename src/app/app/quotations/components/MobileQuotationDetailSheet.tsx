@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Download, MessageCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { generateQuotationPDF } from '@/lib/quotations/quotePdfGenerator';
+import { normalizeQuoteStatus } from '@/lib/quotations/quoteService';
 import { toast } from 'sonner';
 
 interface MobileQuotationDetailSheetProps {
@@ -27,7 +28,7 @@ export default function MobileQuotationDetailSheet({
     ? quotation.client.phones[0]
     : quotation.clientPhone || '';
   const cleanPhone = String(phone).replace(/[^0-9]/g, '');
-  const status = quotation.status || 'Draft';
+  const status = normalizeQuoteStatus(quotation.status);
 
   const latestVersion = quotation.versions?.[0] || {};
   const items = latestVersion.items || [];

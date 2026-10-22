@@ -20,7 +20,7 @@ export async function generateEnquiryPDF(
   const autoTableModule = await import('jspdf-autotable');
   const autoTable = (autoTableModule as any).default || autoTableModule;
 
-  const enqCode = enquiry.enquiryCode || 'ENQ–DRAFT';
+  const enqCode = enquiry.enquiryNumber || enquiry.enquiryCode || 'ENQ–DRAFT';
   const client = enquiry.client || {};
   const clientName = client.name || enquiry.rawName || 'Valued Client';
   const clientPhones = client.phones || (enquiry.rawPhone ? [enquiry.rawPhone] : []);
@@ -147,7 +147,7 @@ export async function generateEnquiryPDF(
   doc.text('Est. Value:', rightX + 4, cardY + 24);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...charcoal);
-  const estVal = Number(enquiry.estimatedValue || 0);
+  const estVal = Number(enquiry.opportunityValue ?? enquiry.estimatedBudget ?? enquiry.estimatedValue ?? 0);
   doc.text(estVal > 0 ? `₹${Math.round(estVal).toLocaleString('en-IN')}` : '–', rightX + 24, cardY + 24);
 
   // =========================================================================
@@ -155,7 +155,8 @@ export async function generateEnquiryPDF(
   // =========================================================================
   let currentY = cardY + 34;
 
-  if (enquiry.scopeBrief) {
+  const briefContent = enquiry.brief || enquiry.scopeBrief;
+  if (briefContent) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(...charcoal);
@@ -164,7 +165,7 @@ export async function generateEnquiryPDF(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...mutedText);
-    const splitBrief = doc.splitTextToSize(String(enquiry.scopeBrief), contentWidth);
+    const splitBrief = doc.splitTextToSize(String(briefContent), contentWidth);
     doc.text(splitBrief, margin, currentY + 5);
     currentY += 6 + splitBrief.length * 4;
   }

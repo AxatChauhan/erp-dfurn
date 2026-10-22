@@ -213,7 +213,9 @@ describe('Audit Verification: Sales Rep RBAC & Data Isolation Guards', () => {
     assert.equal(data.authenticated, true);
     assert.equal(data.user.role, 'SALES');
     assert.ok(data.user.employeeId, 'employeeId must be present on authenticated user');
-    assert.equal(data.user.employeeId, '85f1a53f-c3d7-4da1-b6e9-2067151e688b');
+    // Verify it links to the actual Sales Rep employee record in DB
+    const salesUser = await prisma.user.findUnique({ where: { username: 'sales' } });
+    assert.equal(data.user.employeeId, salesUser.employeeId);
   });
 
   // -------------------------------------------------------------

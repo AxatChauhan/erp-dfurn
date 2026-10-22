@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
+import { normalizeQuoteStatus } from '@/lib/quotations/quoteService';
 import MobileQuotationCard from './components/MobileQuotationCard';
 import MobileQuotationDetailSheet from './components/MobileQuotationDetailSheet';
 
@@ -26,7 +27,7 @@ export default function MobileQuotationsClient({
   // Filtered quotations
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q) => {
-      const status = q.status || 'Draft';
+      const status = normalizeQuoteStatus(q.status);
 
       // Bucket filtering
       if (filterBucket === 'Draft') {
@@ -46,7 +47,7 @@ export default function MobileQuotationsClient({
       // Search filtering
       if (search.trim()) {
         const query = search.toLowerCase();
-        const code = (q.quotationNumber || '').toLowerCase();
+        const code = (q.quotationNumber || q.code || '').toLowerCase();
         const clientName = (q.client?.name || q.clientName || '').toLowerCase();
         if (!code.includes(query) && !clientName.includes(query)) {
           return false;

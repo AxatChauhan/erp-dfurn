@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Download, MessageCircle, ChevronRight, Loader2 } from 'lucide-react';
 import { generateQuotationPDF } from '@/lib/quotations/quotePdfGenerator';
+import { normalizeQuoteStatus } from '@/lib/quotations/quoteService';
 import { toast } from 'sonner';
 
 interface MobileQuotationCardProps {
@@ -31,7 +32,7 @@ export default function MobileQuotationCard({ quotation, onSelect }: MobileQuota
     ? quotation.client.phones[0]
     : quotation.clientPhone || '';
   const cleanPhone = String(phone).replace(/[^0-9]/g, '');
-  const status = quotation.status || 'Draft';
+  const status = normalizeQuoteStatus(quotation.status);
   const badge = STATUS_CLASS[status] || { bg: 'bg-gray-100', text: 'text-gray-700', label: status };
 
   const latestVersion = quotation.versions?.[0] || {};

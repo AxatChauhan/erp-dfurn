@@ -30,8 +30,12 @@ async function MobileQuotationsDataLoader() {
   await connection();
   const session = await getAuthenticatedSession();
 
-  // Mobile App View-Only Mode: All authenticated users can view the full quotations pipeline
-  const data = await fetchQuotationsData({});
+  // Mobile App View-Only Mode: Scoped by role for Sales Rep data isolation
+  const data = await fetchQuotationsData({
+    role: session?.role,
+    employeeId: session?.employeeId,
+    userId: session?.userId,
+  });
 
   return (
     <MobileQuotationsClient

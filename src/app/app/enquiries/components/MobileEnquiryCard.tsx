@@ -42,7 +42,7 @@ export default function MobileEnquiryCard({ enquiry, onSelect }: MobileEnquiryCa
     return '₹' + Math.round(Number(val)).toLocaleString('en-IN');
   };
 
-  const amountDisplay = formatAmount(enquiry.estimatedValue);
+  const amountDisplay = formatAmount(enquiry.opportunityValue ?? enquiry.estimatedBudget ?? enquiry.estimatedValue);
 
   // High-water mark index for monotonic pipeline
   const currentStageIndex = STAGES.indexOf(stage as any);
@@ -59,7 +59,7 @@ export default function MobileEnquiryCard({ enquiry, onSelect }: MobileEnquiryCa
             {clientName}
           </h3>
           <div className="text-[11px] text-gray-500 font-mono tracking-tight flex items-center gap-1.5 mt-0.5">
-            <span>{enquiry.enquiryCode || 'ENQ–DRAFT'}</span>
+            <span>{enquiry.enquiryNumber || enquiry.enquiryCode || 'ENQ–DRAFT'}</span>
             <span>·</span>
             <span className="truncate">{categoryName}</span>
           </div>
