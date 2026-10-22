@@ -145,6 +145,7 @@ export async function POST(req: Request) {
       path: '/',
       maxAge: 604800, // 7 days in seconds
       sameSite: 'lax' as const,
+      secure: process.env.NODE_ENV === 'production',
     };
 
     // Set cookies directly on response

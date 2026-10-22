@@ -1,13 +1,28 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { LogOut, WifiOff } from 'lucide-react';
 import { useMobileApp } from '../MobileAppContext';
 
 export default function MobileTopBar() {
   const pathname = usePathname();
   const { userName, userRole } = useMobileApp();
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -62,6 +77,14 @@ export default function MobileTopBar() {
           <LogOut className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Offline Status Indicator Banner */}
+      {!isOnline && (
+        <div className="absolute top-full inset-x-0 bg-amber-500 text-white text-[11px] font-semibold py-1 px-3 text-center flex items-center justify-center gap-1.5 shadow-xs animate-in slide-in-from-top duration-150">
+          <WifiOff className="w-3.5 h-3.5" />
+          <span>Offline Mode · Cached pipeline view</span>
+        </div>
+      )}
     </header>
   );
 }

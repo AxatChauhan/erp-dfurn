@@ -411,11 +411,15 @@ export function followupInfo(version: any) {
   };
 }
 
-export async function nextQuoteNumber(): Promise<string> {
+export async function nextQuoteNumber(tx?: any): Promise<string> {
+  const db = tx || prisma;
+  if (tx && tx.$executeRawUnsafe) {
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(42002)').catch(() => {});
+  }
   const fyKey = fiscalYearOf(new Date()).key;
   const prefix = `DF/Q/${fyKey}/`;
 
-  const latestQuote = await prisma.quotation.findFirst({
+  const latestQuote = await db.quotation.findFirst({
     where: {
       code: { startsWith: prefix }
     },

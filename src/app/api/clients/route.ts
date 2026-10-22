@@ -22,8 +22,9 @@ function modeOf(mode?: string | null, type?: string | null): BusinessMode {
  * High-Scale Atomic Client Code Generator (< 2ms)
  * Uses indexed boundary seeks instead of scanning all rows in the database.
  */
-export async function generateNextClientCode(mode: BusinessMode): Promise<string> {
-  const highest = await prisma.client.findFirst({
+export async function generateNextClientCode(mode: BusinessMode, tx?: any): Promise<string> {
+  const db = tx || prisma;
+  const highest = await db.client.findFirst({
     where: { clientCode: { startsWith: `DF/C/${mode}/` } },
     orderBy: { clientCode: 'desc' },
     select: { clientCode: true }
@@ -38,7 +39,7 @@ export async function generateNextClientCode(mode: BusinessMode): Promise<string
   let nextSeq = maxSeq + 1;
   while (true) {
     const candidate = `DF/C/${mode}/${String(nextSeq).padStart(5, '0')}`;
-    const exists = await prisma.client.findUnique({
+    const exists = await db.client.findUnique({
       where: { clientCode: candidate },
       select: { id: true }
     });
@@ -435,8 +436,10 @@ export async function POST(req: NextRequest) {
 
     while (attempts < 3) {
       try {
-        const clientCode = await generateNextClientCode(businessMode);
-        newClient = await prisma.client.create({
+        newClient = await prisma.$transaction(async (tx: any) => {
+          await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(42001)').catch(() => {});
+          const clientCode = await generateNextClientCode(businessMode, tx);
+          return await tx.client.create({
           data: {
             clientCode,
             clientType: type,
@@ -456,6 +459,7 @@ export async function POST(req: NextRequest) {
             pendingValidation: false,
             validationIssues: [],
           },
+        });
         });
         break;
       } catch (err: any) {

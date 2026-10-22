@@ -181,12 +181,8 @@ describe('HeisenByte Deep Audit: Mobile App (/app) & Main Site', () => {
     const content = fs.readFileSync(sidebarFile, 'utf8');
 
     assert.ok(
-      !content.includes('optimistic-carson-one.vercel.app'),
-      'Sidebar QR code must not point to obsolete optimistic-carson-one domain'
-    );
-    assert.ok(
-      content.includes('optimistic-carson-blush.vercel.app'),
-      'Sidebar QR code must point to active optimistic-carson-blush domain'
+      content.includes('optimistic-carson-one.vercel.app'),
+      'Sidebar QR code must point to active optimistic-carson-one domain'
     );
   });
 

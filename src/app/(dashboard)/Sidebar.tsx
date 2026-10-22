@@ -489,7 +489,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
 
               <div className="bg-[#FAF9F5] p-4 rounded-xl border border-gray-200 inline-block mb-4 shadow-inner">
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Foptimistic-carson-blush.vercel.app%2Fapp%2Fenquiries"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Foptimistic-carson-one.vercel.app%2Fapp%2Fenquiries"
                   alt="QR Code to open D'furn Mobile App"
                   width={180}
                   height={180}
@@ -498,7 +498,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
               </div>
 
               <div className="text-[11px] text-gray-500 mb-4 bg-gray-50 py-1.5 px-2 rounded font-mono truncate">
-                https://optimistic-carson-blush.vercel.app/app/enquiries
+                https://optimistic-carson-one.vercel.app/app/enquiries
               </div>
 
               <div className="flex gap-2">
